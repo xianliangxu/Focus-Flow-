@@ -21,6 +21,9 @@ export interface SettingsState {
     zoneViewLeafMode: boolean;
     autoSaveEnabled: boolean;
     autoSaveInterval: number;
+    theme: 'dark' | 'light';
+    glassQuality: 'auto' | 'high' | 'balanced' | 'eco';
+    particlesEnabled: boolean;
     dailyPlanViewState: {
       backlogExpanded: boolean;
       scheduleExpanded: boolean;
