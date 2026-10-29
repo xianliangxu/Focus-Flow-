@@ -1,0 +1,361 @@
+/* ============================================================
+   v2.7 顶部番茄钟压至 60px（图1 三列布局：指针钟|数字钟|模式+开始按钮）
+   ============================================================ */
+.pomodoro-clock {
+  height: 60px;
+  padding: 4px 14px;
+  gap: 14px;
+}
+
+.clock-stage {
+  width: 56px;
+  height: 56px;
+}
+
+.clock-digital {
+  gap: 2px;
+}
+
+/* 中间不再显示模式标签（模式由右侧标签组指示），只保留数字+会话点 */
+.clock-digital .clock-mode-tag {
+  display: none !important;
+}
+
+.clock-digital-time {
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.clock-digital .clock-sessions {
+  height: 8px;
+}
+
+.clock-session-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.clock-side {
+  gap: 4px;
+  width: 196px;
+}
+
+.clock-side .clock-mode-btn {
+  min-height: 18px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.clock-main {
+  gap: 4px;
+}
+
+.clock-start-btn,
+.clock-side-btn {
+  min-height: 28px;
+}
+
+/* 运行中：暂停/继续 + 停止/跳过 一行布局 */
+.clock-running-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  width: 100%;
+}
+
+.clock-running-row .clock-side-btn {
+  flex: 1.4;
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.clock-running-row .control-btn {
+  flex: 0.7;
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+/* ============================================================
+   v2.7 日历紧凑单栏（最近 7 天）+ 完整月历弹窗
+   ============================================================ */
+.calendar-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.calendar-strip-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.calendar-strip-cell:hover {
+  background: rgba(0, 180, 200, 0.16);
+}
+
+.calendar-strip-weekday {
+  font-size: 9px;
+  color: var(--fg-text-neutral);
+  line-height: 1.2;
+}
+
+.calendar-strip-day {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg-text-strong);
+  line-height: 1.15;
+}
+
+.calendar-strip-cell.is-today .calendar-strip-day {
+  color: #0891b2;
+}
+
+html.dark .calendar-strip-cell.is-today .calendar-strip-day {
+  color: #67e8f9;
+}
+
+.calendar-strip-cell.is-selected {
+  background: linear-gradient(135deg, rgba(0, 200, 190, 0.85), rgba(0, 140, 210, 0.85));
+  box-shadow: 0 2px 10px rgba(0, 170, 200, 0.35);
+}
+
+.calendar-strip-cell.is-selected .calendar-strip-day,
+.calendar-strip-cell.is-selected .calendar-strip-weekday {
+  color: #fff !important;
+}
+
+.calendar-strip-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #00c8b0;
+}
+
+.calendar-strip-cell.is-selected .calendar-strip-dot {
+  background: #fff;
+}
+
+.calendar-strip-more {
+  width: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--fg-glass-card-border);
+  border-radius: 8px;
+  background: var(--fg-control-bg);
+  color: var(--fg-text-strong);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calendar-strip-more:hover {
+  border-color: rgba(0, 190, 200, 0.5);
+  color: #0891b2;
+}
+
+/* 完整月历弹窗 */
+.calendar-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-dialog {
+  width: min(340px, 92vw);
+  padding: 12px 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(120, 240, 235, 0.18);
+  background: linear-gradient(165deg, rgba(20, 42, 62, 0.98), rgba(8, 22, 38, 0.98));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 231, 210, 0.08);
+  color: #eaf7f4;
+}
+
+html:not(.dark) .calendar-dialog {
+  background: linear-gradient(155deg, rgba(236, 244, 250, 0.98), rgba(216, 234, 246, 0.98));
+  border-color: rgba(0, 90, 130, 0.16);
+  color: rgba(12, 40, 55, 0.9);
+}
+
+.calendar-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.calendar-dialog-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.calendar-dialog-close {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--fg-glass-card-border);
+  background: transparent;
+  color: var(--fg-text-neutral);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calendar-dialog-close:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.calendar-dialog .calendar-weekdays {
+  margin-top: 4px;
+}
+
+.calendar-dialog .calendar-grid {
+  grid-template-rows: repeat(6, minmax(26px, 1fr));
+}
+
+/* ============================================================
+   v2.7 深色模式：深蓝渐变 + 青蓝光晕（图2 风格）
+   ============================================================ */
+html.dark .float-window {
+  background:
+    radial-gradient(circle at 76% 14%, rgba(0, 231, 210, 0.085), transparent 38%),
+    radial-gradient(circle at 16% 86%, rgba(60, 200, 255, 0.06), transparent 42%),
+    radial-gradient(circle at 52% 46%, rgba(0, 90, 130, 0.1), transparent 60%),
+    linear-gradient(168deg, #0a1b33 0%, #0e2b49 55%, #081a2e 100%);
+  border-color: rgba(120, 240, 235, 0.16);
+  box-shadow:
+    0 10px 36px rgba(0, 0, 0, 0.55),
+    0 2px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html.dark .title-bar {
+  background: rgba(4, 14, 28, 0.55);
+  border-color: rgba(120, 240, 235, 0.08);
+}
+
+html.dark .zone-manager,
+html.dark .task-list-container,
+html.dark .global-view-container,
+html.dark .history-manager-container,
+html.dark .settings-panel-container,
+html.dark .execution-plan-container,
+html.dark .top-header-full {
+  background: linear-gradient(165deg, rgba(16, 42, 66, 0.86), rgba(8, 24, 42, 0.92));
+  border-color: rgba(120, 240, 235, 0.12);
+  box-shadow:
+    0 0 24px rgba(0, 231, 210, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================
+   v2.7 浅色主题白字根治（第二轮补丁）
+   1) 根容器 color 兜底：修复裸元素/未分类元素继承白字的根因
+   2) bg-black 不带斜杠（React-day-picker 日历、下拉等 portal 弹窗）
+   3) 任意值深底弹窗（SpanFormDialog）
+   4) placeholder 白字（伪元素无法被 text-white 类映射覆盖）
+   ============================================================ */
+html:not(.dark) .zone-manager,
+html:not(.dark) .settings-panel-container,
+html:not(.dark) .task-list-container,
+html:not(.dark) .global-view-container,
+html:not(.dark) .history-manager-container,
+html:not(.dark) .execution-plan-container,
+html:not(.dark) .left-panel-calendar,
+html:not(.dark) .left-panel-zones,
+html:not(.dark) .content-area {
+  color: var(--fg-text-strong) !important;
+}
+
+html:not(.dark) .zone-manager-title {
+  color: rgba(12, 40, 55, 0.86) !important;
+}
+
+html:not(.dark) [class*="bg-black"] {
+  background-color: rgba(0, 90, 130, 0.08) !important;
+}
+
+html:not(.dark) [class*="bg-[#1a1a24]"] {
+  background: linear-gradient(155deg, rgba(234, 243, 250, 0.97), rgba(214, 232, 244, 0.97)) !important;
+  border-color: rgba(0, 90, 130, 0.16) !important;
+}
+
+html:not(.dark) [class*="placeholder:text-white"]::placeholder {
+  color: rgba(12, 40, 55, 0.4) !important;
+}
+
+/* ---- 第二轮全量兜底：自定义语义类 hover/子元素/弹窗空态 白字→深色 ---- */
+html:not(.dark) .timer-auto-expand-toggle:hover,
+html:not(.dark) .zone-action-btn:hover,
+html:not(.dark) .zone-edit-btn:hover,
+html:not(.dark) .footer-btn:hover,
+html:not(.dark) .task-drag-handle:hover,
+html:not(.dark) .task-action-btn:hover,
+html:not(.dark) .completed-toggle:hover,
+html:not(.dark) .back-btn:hover,
+html:not(.dark) .archive-action-btn:hover,
+html:not(.dark) .history-summary:hover,
+html:not(.dark) .history-dialog [data-slot="dialog-close"]:hover,
+html:not(.dark) .template-dialog [data-slot="dialog-close"]:hover {
+  color: rgba(12, 40, 55, 0.75) !important;
+}
+
+html:not(.dark) .subtask-cancel-btn,
+html:not(.dark) .subtask-cancel-btn:hover {
+  color: rgba(12, 40, 55, 0.6) !important;
+}
+
+html:not(.dark) .task-work-time .estimated-time,
+html:not(.dark) .task-work-time .own-time,
+html:not(.dark) .task-work-time svg {
+  color: rgba(12, 40, 55, 0.5) !important;
+}
+
+html:not(.dark) .history-manager-container .empty-icon,
+html:not(.dark) .history-manager-container .empty-state p,
+html:not(.dark) .history-manager-container .empty-hint {
+  color: rgba(12, 40, 55, 0.5) !important;
+}
+
+html:not(.dark) .history-task-item.completed {
+  color: rgba(12, 40, 55, 0.4) !important;
+}
+
+html:not(.dark) .history-dialog input::placeholder,
+html:not(.dark) .template-dialog input::placeholder {
+  color: rgba(12, 40, 55, 0.4) !important;
+}
+
+html:not(.dark) .zone-grip,
+html:not(.dark) .zone-grip:hover {
+  color: rgba(12, 40, 55, 0.45) !important;
+}
+
+html:not(.dark) .task-list-empty {
+  color: rgba(12, 40, 55, 0.5) !important;
+}
