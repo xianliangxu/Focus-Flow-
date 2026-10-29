@@ -1,310 +1,93 @@
-export type TaskPriority = 'critical' | 'heavy' | 'high' | 'medium' | 'low';
-export type TaskUrgency = 'low' | 'medium' | 'high' | 'urgent';
-export type DeadlineType = 'exact' | 'today' | 'tomorrow' | 'week' | 'none';
-export type TimerMode = 'work' | 'break' | 'longBreak' | 'idle';
-export type GlobalViewSortMode = 'manual' | 'zone' | 'priority' | 'urgency' | 'weighted' | 'workTime' | 'estimatedTime' | 'timeDiff' | 'deadline';
+import { z } from "zod"
 
-export interface SortConfig {
-  mode: GlobalViewSortMode;
-  priorityWeight: number;
-  deadlineWeight: number; // 替换原来的 urgencyWeight
-}
+export type Priority = "critical" | "heavy" | "high" | "medium" | "low"
 
-// 内部剪贴板数据类型
-export interface ClipboardData {
-  type: 'task' | 'zone';
-  data: Task | { zone: Zone; tasks: Task[] };
-  timestamp: number;
-}
+export type Urgency = "urgent" | "high" | "medium" | "low"
 
 export interface Task {
-  id: string;
-  zoneId: string;
-  parentId: string | null;  // 父任务ID，null表示顶级任务
-  isCollapsed: boolean;      // 是否折叠子任务
-  title: string;
-  description: string;
-  completed: boolean;
-  priority: TaskPriority;
-  urgency: TaskUrgency;     // 保留用于显示，但值由 deadline 自动计算
-  deadline: number | null;  // 截止时间戳（毫秒）
-  deadlineType: DeadlineType; // 截止时间类型
-  order: number;
-  createdAt: number;
-  completedAt?: number;
-  expanded: boolean;
-  totalWorkTime: number; // 累计工作时间（秒），包含所有子任务的时间
-  ownTime?: number;      // 独立计时时间（秒），仅在该任务上花费的时间，不含子任务
-  estimatedTime?: number; // 预期时间（分钟），创建时可填也可后续编辑
-  preventAutoComplete?: boolean; // 开启后即使所有子任务完成也不会自动结束
-  isRecurring?: boolean; // 标识是否由定时器生成
-  plannedDates?: string[]; // 被分配到的单日计划日期（YYYY-MM-DD）
-  planGroupIds?: string[]; // 所属计划组 id 列表
-  dailyPlanOrder?: Record<string, number>; // 各日期在执行计划缓存区中的排序（仅影响执行计划视图）
-  dailyPlanSpanIds?: Record<string, string[]>; // date -> spanId[]，任务被拖入的时间块（可同时属于多个 span）
-  dailyPlanSpanOrder?: Record<string, Record<string, number>>; // date -> { spanId: order }，时间块内部排序
+  id: string
+  title: string
+  description: string
+  completed: boolean
+  createdAt: number
+  completedAt?: number
+  workTime: number
+  estimatedTime: number
+  priority: Priority
+  urgency: Urgency
+  zoneId?: string
+  subtasks?: Task[]
+  lastActiveAt?: number
+  collapsed?: boolean
 }
 
-// 定时任务模板
-export interface RecurringTemplate {
-  id: string;
-  title: string;
-  description: string;
-  zoneId: string;
-  priority: TaskPriority;
-  intervalMinutes: number; // 循环间隔(分钟)
-  deadlineOffsetHours: number; // 自动设定截止时间的偏移量(小时)
-  lastTriggeredAt: number; // 上次生成的时间
-  isActive: boolean;
-  scope?: 'global' | 'workspace'; // 规则作用域标识
-}
-
-// 配置环境包（快照）
-export interface ConfigProfile {
-  id: string;
-  name: string;
-  createdAt: number;
-  settings: AppState['settings'];
-  customTemplates: Template[];
-  recurringTemplates: RecurringTemplate[];
+export interface TaskHistoryEntry {
+  id: string
+  taskId: string
+  taskName: string
+  summary: string
+  completedAt: number
+  totalWorkTime: number
+  subtaskDetails: { name: string; completed: boolean }[]
 }
 
 export interface Zone {
-  id: string;
-  name?: string;
-  nameKey?: string;
-  color: string;
-  order: number;
-  createdAt: number;
-}
-
-// 执行计划组
-export interface PlanGroup {
-  id: string;
-  name: string;
-  startDate?: string | null; // ISO 日期 YYYY-MM-DD，null/undefined 表示无时间组
-  endDate?: string | null;   // ISO 日期 YYYY-MM-DD
-  order: number;
-  createdAt: number;
-}
-
-// 单日计划时间块（Time Span）
-export interface DailyPlanSpan {
-  id: string;
-  date: string;        // ISO 日期 YYYY-MM-DD
-  startHour: number;   // 0.0 - 24.0，支持 0.5 粒度
-  endHour: number;     // > startHour，最大 24.0
-  description?: string; // 时间块描述/备注
-  createdAt: number;
-}
-
-// 历史工作区（替代原来的 Archive）
-export interface HistoryWorkspace {
-  id: string;
-  name: string;
-  summary: string;
-  createdAt: number;
-  lastModified: number;
-  zones: Zone[];
-  tasks: Task[];
-  sessions: PomodoroSession[];
-}
-
-// 当前工作区
-export interface CurrentWorkspace {
-  id: string;
-  name: string;
-  zones: Zone[];
-  tasks: Task[];
-  sessions: PomodoroSession[];
-  createdAt: number;
-  lastModified: number;
-  sourceHistoryId?: string; // 来自哪个历史记录（恢复时设置）
+  id: string
+  name: string
+  color: string
 }
 
 export interface Template {
-  id: string;
-  name?: string;
-  nameKey?: string;
-  description?: string;
-  descKey?: string;
-  icon: string;
-  zones: Omit<Zone, 'id' | 'createdAt'>[];
+  id: string
+  name: string
+  description: string
+  zones: Zone[]
 }
 
-export interface PomodoroSession {
-  id: string;
-  taskId: string;
-  startTime: number;
-  endTime?: number;
-  completed: boolean;
+export interface Settings {
+  workDuration: number
+  breakDuration: number
+  longBreakDuration: number
+  sessionsUntilLongBreak: number
+  autoStartBreaks: boolean
+  autoStartPomodoros: boolean
+  language: string
+  languageManual: boolean
+  soundEnabled: boolean
+  soundVolume: number
+  priority: Priority[]
+  theme: 'dark' | 'light'
+  glassQuality: string
+  particlesEnabled: boolean
 }
 
 export interface AppState {
-  currentView: 'zones' | 'global' | 'executionPlan' | 'history' | 'settings';
-  activeZoneId: string | null;
-  focusedTaskId: string | null; // 从全局视图导航到分区时聚焦的任务ID
-  activeHistoryId: string | null; // 当前查看的历史工作区ID
-  // 当前工作区
-  currentWorkspace: CurrentWorkspace;
-  // 历史工作区列表
-  historyWorkspaces: HistoryWorkspace[];
-  // 自定义模板列表
-  customTemplates: Template[];
-  // 设置
-  settings: {
-    language: string;
-    languageManual?: boolean; // 用户是否手动设置过语言（true=手动设置，false/undefined=自动检测）
-    workDuration: number;
-    breakDuration: number;
-    longBreakDuration: number;
-    autoStartBreak: boolean;
-    soundEnabled: boolean;
-    collapsed: boolean;
-    collapsePosition: { x: number; y: number };
-    globalViewSort: SortConfig;
-    globalViewLeafMode: boolean; // 叶子节点模式状态
-    globalViewGroupByZone: boolean; // 全局视图是否按工作区分组
-    zoneViewSort: SortConfig;    // 新增：局部视图排序状态
-    zoneViewLeafMode: boolean;   // 新增：局部视图叶子模式状态
-    autoSaveEnabled: boolean;
-    autoSaveInterval: number;
-  };
-  // 定时任务模板列表
-  recurringTemplates: RecurringTemplate[];
-  // 配置环境包列表
-  configProfiles: ConfigProfile[];
+  tasks: Task[]
+  zones: Zone[]
+  templates: Template[]
+  history: TaskHistoryEntry[]
+  activeTaskId: string | null
+  activeZoneId: string | null
+  selectedZoneId: string | null
+  selectedTemplateId: string | null
+  settings: Settings
+  isHydrated: boolean
+  [key: string]: unknown
 }
 
-export interface TimerState {
-  mode: TimerMode;
-  timeRemaining: number;
-  isRunning: boolean;
-  currentTaskId: string | null;
-  currentSessionStartTime?: number; // 当前专注会话开始时间
-  pausedTimeRemaining?: number;     // 暂停时的剩余时间（秒）
-}
-
-// Predefined templates
-export const PREDEFINED_TEMPLATES: Template[] = [
-  {
-    id: 'general',
-    nameKey: 'template.templateGeneral',
-    descKey: 'template.templateGeneralDesc',
-    icon: 'LayoutGrid',
-    zones: [
-      { nameKey: 'zone.workZone', color: '#3b82f6', order: 0 },
-      { nameKey: 'zone.studyZone', color: '#8b5cf6', order: 1 },
-      { nameKey: 'zone.lifeZone', color: '#22c55e', order: 2 },
-    ],
-  },
-  {
-    id: 'project',
-    nameKey: 'template.templateProject',
-    descKey: 'template.templateProjectDesc',
-    icon: 'FolderKanban',
-    zones: [
-      { nameKey: 'zone.projectA', color: '#f59e0b', order: 0 },
-      { nameKey: 'zone.projectB', color: '#ec4899', order: 1 },
-      { nameKey: 'zone.projectC', color: '#06b6d4', order: 2 },
-      { nameKey: 'zone.other', color: '#6b7280', order: 3 },
-    ],
-  },
-  {
-    id: 'dev',
-    nameKey: 'template.templateDev',
-    descKey: 'template.templateDevDesc',
-    icon: 'Code',
-    zones: [
-      { nameKey: 'zone.devZone', color: '#3b82f6', order: 0 },
-      { nameKey: 'zone.testZone', color: '#22c55e', order: 1 },
-      { nameKey: 'zone.docZone', color: '#f59e0b', order: 2 },
-      { nameKey: 'zone.bugFix', color: '#ef4444', order: 3 },
-    ],
-  },
-  {
-    id: 'blank',
-    nameKey: 'template.templateBlank',
-    descKey: 'template.templateBlankDesc',
-    icon: 'FileX',
-    zones: [],
-  },
-];
-
-// Predefined colors for zones
-export const ZONE_COLORS = [
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // yellow
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#6366f1', // indigo
-  '#14b8a6', // teal
-  '#84cc16', // lime
-  '#6b7280', // gray
-];
-
-// 默认设置（正常值）
 export const DEFAULT_SETTINGS = {
-  language: 'zh', // 默认语言
-  workDuration: 25 * 60, // 25分钟
-  breakDuration: 5 * 60, // 5分钟
-  longBreakDuration: 15 * 60, // 15分钟
-  autoStartBreak: false,
+  workDuration: 25,
+  breakDuration: 5,
+  longBreakDuration: 15,
+  sessionsUntilLongBreak: 4,
+  autoStartBreaks: false,
+  autoStartPomodoros: false,
+  language: 'zh',
+  languageManual: false,
   soundEnabled: true,
-  collapsed: false,
-  collapsePosition: { x: 100, y: 100 },
-  globalViewSort: {
-    mode: 'zone' as GlobalViewSortMode,
-    priorityWeight: 0.6, // 60%
-    deadlineWeight: 0.4, // 40%
-  },
-  globalViewLeafMode: false,
-  globalViewGroupByZone: false, // 默认关闭按工作区分组
-  zoneViewSort: {
-    mode: 'manual' as GlobalViewSortMode,
-    priorityWeight: 0.6,
-    deadlineWeight: 0.4,
-  },
-  zoneViewLeafMode: false,
-  autoSaveEnabled: true, // 默认开启自动保存
-  autoSaveInterval: 120, // 自动保存间隔（秒），默认120秒
-  recurringTemplates: [], // 定时任务模板列表
-  dailyPlanViewState: {
-    backlogExpanded: true,
-    scheduleExpanded: false,
-    splitRatio: 0.5,
-    executionSplitRatio: 0.4,
-    hourHeight: 48,
-    scrollTop: 0,
-  },
-};
-
-// 格式化时间为可读字符串
-export function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
-}
-
-// 格式化时间为详细字符串
-export function formatDurationDetailed(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  
-  if (hours > 0) {
-    return `${hours}小时 ${mins}分 ${secs}秒`;
-  }
-  if (mins > 0) {
-    return `${mins}分 ${secs}秒`;
-  }
-  return `${secs}秒`;
-}
+  soundVolume: 0.5,
+  priority: ['high', 'medium', 'low'] as Priority[],
+  theme: 'dark' as const,
+  glassQuality: 'auto' as const,
+  particlesEnabled: true,
+} as const
