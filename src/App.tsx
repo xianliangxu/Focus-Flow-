@@ -711,7 +711,7 @@ function App() {
   return (
     <>
       <ClickParticles />
-      <FloatWindow onCollapse={handleToggleCollapse}>
+      <FloatWindow onCollapse={handleToggleCollapse} onOpenSettings={() => setCurrentView('settings')}>
         <div className="app-container">
           {/* Top header: 整行留给圆形指针钟番茄钟 */}
           <div className="top-header-row">
@@ -763,21 +763,24 @@ function App() {
           ) : (
             <ResizablePanelGroup direction="horizontal" className="main-content">
               <ResizablePanel defaultSize="44%" minSize="5%" maxSize="95%">
-                <div className="left-panel">
-                  {/* 上半：月历（选日看任务） */}
-                  <div className="left-panel-calendar">
-                    <CalendarPanel
-                      tasks={tasks}
-                      selectedDate={executionPlanDate}
-                      onSelectDate={(date) => {
-                        setExecutionPlanDate(date);
-                        setCurrentView('executionPlan');
-                      }}
-                    />
-                  </div>
-                  <div className="left-panel-divider" />
-                  {/* 下半：工作分区 */}
-                  <div className="left-panel-zones">
+                <ResizablePanelGroup direction="vertical" className="left-panel">
+                  {/* 上：月历（默认小，可拖大） */}
+                  <ResizablePanel defaultSize="35%" minSize="15%" maxSize="60%">
+                    <div className="left-panel-calendar">
+                      <CalendarPanel
+                        tasks={tasks}
+                        selectedDate={executionPlanDate}
+                        onSelectDate={(date) => {
+                          setExecutionPlanDate(date);
+                          setCurrentView('executionPlan');
+                        }}
+                      />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle className="resize-handle-v" withHandle />
+                  {/* 下：工作分区（默认大，可拖小） */}
+                  <ResizablePanel defaultSize="65%" minSize="40%" maxSize="85%">
+                    <div className="left-panel-zones">
                     <ZoneManager
                       zones={zones}
                       tasks={tasks}
@@ -805,12 +808,12 @@ function App() {
                         if (view === 'global') setActiveZoneId(null);
                       }}
                       onOpenHistory={() => setCurrentView('history')}
-                      onOpenSettings={() => setCurrentView('settings')}
                       onSaveAsTemplate={saveCustomTemplate}
                       onDeleteCustomTemplate={deleteCustomTemplate}
                     />
                   </div>
-                </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               </ResizablePanel>
 
               <ResizableHandle className="resize-handle" withHandle />

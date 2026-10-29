@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Settings, Trash2, Edit2, Palette, FolderKanban, History, Cog, Save, X, GripVertical, CalendarDays } from 'lucide-react';
+import { Plus, Settings, Trash2, Edit2, Palette, FolderKanban, History, Save, X, GripVertical, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -42,7 +42,6 @@ interface ZoneManagerProps {
   onApplyTemplate: (templateId: string) => void;
   onViewChange: (view: 'zones' | 'global' | 'executionPlan' | 'history') => void;
   onOpenHistory: () => void;
-  onOpenSettings: () => void;
   onSaveAsTemplate?: (name: string) => void;
   onDeleteCustomTemplate?: (id: string) => void;
 }
@@ -137,7 +136,6 @@ export function ZoneManager({
   onApplyTemplate,
   onViewChange,
   onOpenHistory,
-  onOpenSettings,
   onSaveAsTemplate,
   onDeleteCustomTemplate,
 }: ZoneManagerProps) {
@@ -243,7 +241,6 @@ export function ZoneManager({
                 <DialogTitle>{t('template.applyTemplate')}</DialogTitle>
               </DialogHeader>
               <div className="template-list">
-                {/* {t('template.predefinedTemplates')} */}
                 {templates.map((template) => (
                   <button
                     key={template.id}
@@ -266,7 +263,6 @@ export function ZoneManager({
                     </div>
                   </button>
                 ))}
-                {/* {t('template.customTemplates')} */}
                 {customTemplates.map((template) => (
                   <button
                     key={template.id}
@@ -304,7 +300,6 @@ export function ZoneManager({
                     )}
                   </button>
                 ))}
-                {/* {t('template.saveAsTemplate')} */}
                 {onSaveAsTemplate && zones.length > 0 && (
                   <button
                     className="template-item save-template-btn"
@@ -455,15 +450,6 @@ export function ZoneManager({
         >
           <History size={14} className="mr-1" />
           {t('workspace.history')}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="footer-btn h-7 text-[11px]"
-          onClick={onOpenSettings}
-        >
-          <Cog size={14} className="mr-1" />
-          {t('settings.title')}
         </Button>
       </div>
 
