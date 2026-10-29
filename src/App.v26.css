@@ -1,0 +1,336 @@
+/* ============================================================
+   v2.6 顶部番茄钟横向布局（指针钟 + 数字钟 + 模式/控制组）
+   ============================================================ */
+.pomodoro-clock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  width: 100%;
+  height: 118px;
+  padding: 6px 18px;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.clock-stage {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+}
+
+.clock-digital {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.clock-digital .clock-mode-tag {
+  margin-bottom: 0;
+}
+
+.clock-digital-time {
+  font-size: 36px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+}
+
+.clock-digital .clock-sessions {
+  height: 10px;
+}
+
+/* 右侧：模式按钮组 + 主控制（上下排列、左右对齐） */
+.clock-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  width: 172px;
+  flex-shrink: 0;
+}
+
+.clock-side .clock-modes {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  width: 100%;
+}
+
+.clock-side .clock-mode-btn {
+  flex: 1;
+  justify-content: center;
+  padding: 5px 4px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.clock-mode-btn.active {
+  border-color: var(--fg-accent-border, rgba(0, 190, 200, 0.55));
+  background: var(--fg-accent-soft, rgba(0, 190, 200, 0.12));
+  color: #0891b2;
+}
+
+.clock-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.clock-start-btn,
+.clock-side-btn {
+  width: 100%;
+  min-height: 30px;
+}
+
+.clock-side-sub {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  width: 100%;
+}
+
+.clock-side-sub .control-btn {
+  flex: 1;
+  min-height: 28px;
+}
+
+/* ---- 左侧面板：日历/分区 竖向拖拽（vertical ResizablePanelGroup） ---- */
+.left-panel {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.left-panel-calendar {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+}
+
+.left-panel-zones {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+}
+
+.resize-handle-v {
+  position: relative;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: row-resize;
+  transition: background 0.15s ease;
+}
+
+.resize-handle-v::after {
+  content: "";
+  width: 56px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--fg-divider, rgba(128, 150, 170, 0.35));
+  transition: background 0.15s ease;
+}
+
+.resize-handle-v[data-resize-handle-active],
+.resize-handle-v:hover::after {
+  background: rgba(0, 190, 200, 0.55);
+}
+
+/* ---- 标题栏：设置按钮（右上角，窗口按钮旁） ---- */
+.window-controls .control-btn.settings:hover {
+  color: #0891b2;
+  border-color: rgba(0, 190, 200, 0.5);
+}
+
+/* ============================================================
+   v2.6 浅色主题白字全量根治
+   1) Tailwind 类全量映射（覆盖 30+ 组件、含 portal 弹窗/下拉）
+   2) CSS 硬编码白字语义类映射
+   ============================================================ */
+html:not(.dark) [class*="bg-black/"] {
+  background-color: rgba(0, 90, 130, 0.07) !important;
+}
+html:not(.dark) [class*="bg-zinc-900"],
+html:not(.dark) [class*="bg-zinc-950"] {
+  background: linear-gradient(155deg, rgba(234, 243, 250, 0.97), rgba(214, 232, 244, 0.97)) !important;
+  border-color: rgba(0, 90, 130, 0.16) !important;
+}
+html:not(.dark) [class*="bg-zinc-800"],
+html:not(.dark) [class*="bg-zinc-700"],
+html:not(.dark) [class*="bg-gray-800"],
+html:not(.dark) [class*="bg-gray-900"] {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+html:not(.dark) [class*="bg-gray-100"],
+html:not(.dark) [class*="bg-gray-200"],
+html:not(.dark) [class*="bg-slate-100"],
+html:not(.dark) [class*="bg-slate-200"] {
+  background-color: rgba(0, 90, 130, 0.06) !important;
+}
+html:not(.dark) [class*="border-white/"] {
+  border-color: rgba(0, 90, 130, 0.18) !important;
+}
+html:not(.dark) [class*="border-white"] {
+  border-color: rgba(0, 90, 130, 0.24) !important;
+}
+
+/* 白字按透明度档位映射（兜底放最前，档位规则在后覆盖） */
+html:not(.dark) [class*="text-white"] {
+  color: rgba(12, 40, 55, 0.92) !important;
+}
+html:not(.dark) [class*="text-white/90"] { color: rgba(12, 40, 55, 0.9) !important; }
+html:not(.dark) [class*="text-white/80"] { color: rgba(12, 40, 55, 0.84) !important; }
+html:not(.dark) [class*="text-white/70"] { color: rgba(12, 40, 55, 0.78) !important; }
+html:not(.dark) [class*="text-white/60"] { color: rgba(12, 40, 55, 0.72) !important; }
+html:not(.dark) [class*="text-white/50"] { color: rgba(12, 40, 55, 0.64) !important; }
+html:not(.dark) [class*="text-white/40"] { color: rgba(12, 40, 55, 0.56) !important; }
+html:not(.dark) [class*="text-white/30"] { color: rgba(12, 40, 55, 0.48) !important; }
+html:not(.dark) [class*="text-white/20"] { color: rgba(12, 40, 55, 0.4) !important; }
+html:not(.dark) [class*="text-white/10"] { color: rgba(12, 40, 55, 0.32) !important; }
+html:not(.dark) [class*="text-white/5"]  { color: rgba(12, 40, 55, 0.24) !important; }
+
+/* 浅灰 Tailwind 文字 → 深色 */
+html:not(.dark) [class*="text-gray-100"],
+html:not(.dark) [class*="text-gray-200"],
+html:not(.dark) [class*="text-gray-300"],
+html:not(.dark) [class*="text-gray-400"],
+html:not(.dark) [class*="text-gray-500"],
+html:not(.dark) [class*="text-slate-200"],
+html:not(.dark) [class*="text-slate-300"],
+html:not(.dark) [class*="text-slate-400"],
+html:not(.dark) [class*="text-zinc-200"],
+html:not(.dark) [class*="text-zinc-300"],
+html:not(.dark) [class*="text-zinc-400"],
+html:not(.dark) [class*="text-neutral-200"],
+html:not(.dark) [class*="text-neutral-300"],
+html:not(.dark) [class*="text-neutral-400"] {
+  color: rgba(12, 40, 55, 0.66) !important;
+}
+
+/* 亮色语义文字 → 深一档（浅色下仍可读） */
+html:not(.dark) [class*="text-sky-300"] { color: #0369a1 !important; }
+html:not(.dark) [class*="text-blue-300"] { color: #1d4ed8 !important; }
+html:not(.dark) [class*="text-blue-400"] { color: #1d4ed8 !important; }
+html:not(.dark) [class*="text-emerald-300"] { color: #047857 !important; }
+html:not(.dark) [class*="text-emerald-400"] { color: #047857 !important; }
+html:not(.dark) [class*="text-purple-300"] { color: #6d28d9 !important; }
+html:not(.dark) [class*="text-purple-400"] { color: #6d28d9 !important; }
+html:not(.dark) [class*="text-slate-300"] { color: #334155 !important; }
+html:not(.dark) [class*="text-slate-400"] { color: #475569 !important; }
+html:not(.dark) [class*="text-cyan-300"] { color: #0e7490 !important; }
+html:not(.dark) [class*="text-teal-300"] { color: #0f766e !important; }
+
+/* 深色半透明底 + 白字的成对场景（时间输入框等） */
+html:not(.dark) .clock-time-edit {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 90, 130, 0.3);
+  color: rgba(12, 40, 55, 0.92);
+}
+
+/* CSS 硬编码白字语义类 → 浅色深色文字 */
+html:not(.dark) .title-text { color: rgba(12, 40, 55, 0.92) !important; }
+html:not(.dark) .time-text { color: rgba(12, 40, 55, 0.95) !important; }
+html:not(.dark) .time-text.running { color: #0284c7 !important; }
+html:not(.dark) .zone-name { color: rgba(12, 40, 55, 0.86) !important; }
+html:not(.dark) .zone-count { color: rgba(12, 40, 55, 0.52) !important; }
+html:not(.dark) .task-title { color: rgba(12, 40, 55, 0.86) !important; }
+html:not(.dark) .task-description { color: rgba(12, 40, 55, 0.56) !important; }
+html:not(.dark) .task-work-time { color: rgba(12, 40, 55, 0.5) !important; }
+html:not(.dark) .task-count { color: rgba(12, 40, 55, 0.5) !important; }
+html:not(.dark) .mode-text { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .mode-btn { color: rgba(12, 40, 55, 0.72) !important; }
+html:not(.dark) .stat-label { color: rgba(12, 40, 55, 0.58) !important; }
+html:not(.dark) .stat-value { color: rgba(12, 40, 55, 0.9) !important; }
+html:not(.dark) .footer-btn { color: rgba(12, 40, 55, 0.72) !important; }
+html:not(.dark) .add-task-title-input,
+html:not(.dark) .add-task-desc-input,
+html:not(.dark) .subtask-input,
+html:not(.dark) .task-edit-input,
+html:not(.dark) .history-edit-input {
+  color: rgba(12, 40, 55, 0.86) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 90, 130, 0.2) !important;
+}
+html:not(.dark) .add-task-title-input::placeholder,
+html:not(.dark) .add-task-desc-input::placeholder,
+html:not(.dark) .subtask-input::placeholder,
+html:not(.dark) .task-edit-input::placeholder {
+  color: rgba(12, 40, 55, 0.4) !important;
+}
+html:not(.dark) .completed-toggle { color: rgba(12, 40, 55, 0.7) !important; }
+html:not(.dark) .task-checkbox { border-color: rgba(0, 90, 130, 0.3) !important; }
+html:not(.dark) .task-checkbox.checked { border-color: #0891b2 !important; }
+html:not(.dark) .task-drag-handle { color: rgba(12, 40, 55, 0.4) !important; }
+html:not(.dark) .task-action-btn { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .zone-action-btn { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .zone-edit-btn { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .collapse-icon { color: rgba(12, 40, 55, 0.75) !important; }
+html:not(.dark) .float-timer-text { color: rgba(12, 40, 55, 0.9) !important; }
+html:not(.dark) .float-task-title { color: rgba(12, 40, 55, 0.7) !important; }
+html:not(.dark) .back-btn { color: rgba(12, 40, 55, 0.7) !important; }
+html:not(.dark) .loading-text { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .timer-auto-expand-toggle { color: rgba(12, 40, 55, 0.7) !important; }
+
+/* 设置面板（含 portal 弹窗场景） */
+html:not(.dark) .settings-panel-title { color: rgba(12, 40, 55, 0.9) !important; }
+html:not(.dark) .settings-section-title { color: rgba(12, 40, 55, 0.78) !important; }
+html:not(.dark) .setting-label > span:first-of-type { color: rgba(12, 40, 55, 0.85) !important; }
+html:not(.dark) .setting-value { color: #0369a1 !important; }
+html:not(.dark) .setting-desc,
+html:not(.dark) .settings-section-desc { color: rgba(12, 40, 55, 0.5) !important; }
+html:not(.dark) .settings-panel-header,
+html:not(.dark) .settings-section-title,
+html:not(.dark) .settings-footer { border-color: rgba(0, 90, 130, 0.12) !important; }
+html:not(.dark) .settings-panel-container { background: rgba(0, 90, 130, 0.045) !important; }
+html:not(.dark) .settings-panel-container input,
+html:not(.dark) .settings-panel-container select,
+html:not(.dark) .settings-panel-container textarea,
+html:not(.dark) .settings-panel-container [data-slot="select-trigger"] {
+  color: rgba(12, 40, 55, 0.88) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 90, 130, 0.2) !important;
+}
+
+/* 历史工作区 / 归档 / 模板 弹窗（portal，body 级） */
+html:not(.dark) .history-manager-container,
+html:not(.dark) .template-dialog {
+  background: linear-gradient(155deg, rgba(236, 244, 250, 0.98), rgba(216, 234, 246, 0.98)) !important;
+  color: rgba(12, 40, 55, 0.9) !important;
+  border-color: rgba(0, 90, 130, 0.16) !important;
+}
+html:not(.dark) .history-summary { color: rgba(12, 40, 55, 0.6) !important; }
+html:not(.dark) .history-task-item { color: rgba(12, 40, 55, 0.8) !important; }
+html:not(.dark) .archive-action-btn { color: rgba(12, 40, 55, 0.62) !important; }
+html:not(.dark) .color-option { border-color: rgba(0, 90, 130, 0.25) !important; }
+html:not(.dark) .template-dialog input {
+  color: rgba(12, 40, 55, 0.86) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* 浅色下时钟表盘装饰线转深（仅 rgba 白线，不动彩色指针） */
+html:not(.dark) .clock-face circle:nth-child(3) {
+  stroke: rgba(20, 60, 90, 0.22);
+}
+html:not(.dark) .clock-face line[stroke*="255"] {
+  stroke: rgba(20, 60, 90, 0.38);
+}
+html:not(.dark) .clock-face text {
+  fill: rgba(12, 40, 55, 0.72) !important;
+}
