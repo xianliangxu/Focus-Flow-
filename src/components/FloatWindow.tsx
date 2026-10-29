@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Pin, Minus, X, GripHorizontal, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAppStore } from '@/store';
+import { FluidGlassBackdrop } from '@/components/FluidGlassBackdrop';
 
 interface FloatWindowProps {
   children: React.ReactNode;
@@ -71,6 +73,9 @@ export function FloatWindow({ children, onCollapse }: FloatWindowProps) {
   const { t } = useTranslation();
   const [isPinned, setIsPinned] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const theme = useAppStore((s) => s.settings.theme);
+  const glassQuality = useAppStore((s) => s.settings.glassQuality);
+  const particlesEnabled = useAppStore((s) => s.settings.particlesEnabled);
 
   // Toggle always on top
   const togglePin = async () => {
@@ -114,7 +119,11 @@ export function FloatWindow({ children, onCollapse }: FloatWindowProps) {
     <div
       ref={containerRef}
       className="float-window"
+      data-theme={theme}
     >
+      {/* 流体玻璃背景 + 粒子特效层 */}
+      <FluidGlassBackdrop theme={theme} quality={glassQuality} particlesEnabled={particlesEnabled} />
+
       {/* Title bar */}
       <div
         className="title-bar"

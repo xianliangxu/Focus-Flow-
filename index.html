@@ -1,9 +1,18 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Focus Flow</title>
+    <script>
+      // 明暗主题：在 React 挂载前应用持久化主题，避免启动闪烁
+      try {
+        var theme = localStorage.getItem('focus-flow-theme');
+        document.documentElement.classList.toggle('dark', theme !== 'light');
+      } catch (e) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
