@@ -28,6 +28,7 @@ body {
   flex-direction: column;
   height: 100%;
   position: relative;
+  isolation: isolate;
 }
 
 .float-window {
