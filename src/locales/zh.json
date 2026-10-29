@@ -115,7 +115,21 @@
     "changeLocation": "修改存储位置",
     "selectDbFolder": "请选择新的存储文件夹",
     "migratingData": "正在迁移数据并重启，请稍候...",
-    "migrationFailed": "修改数据存储位置失败"
+    "migrationFailed": "修改数据存储位置失败",
+    "appearance": "外观",
+    "appearanceDesc": "流体玻璃材质、粒子特效与明暗主题设置",
+    "theme": "明暗主题",
+    "themeDesc": "切换浅色 / 深色界面，即时生效并自动保存",
+    "light": "浅色",
+    "dark": "深色",
+    "glassQuality": "玻璃材质质量",
+    "glassQualityDesc": "影响流体渲染清晰度与性能，低配设备建议 Eco",
+    "glassQualityAuto": "自动",
+    "glassQualityHigh": "高清（High）",
+    "glassQualityBalanced": "均衡（Balanced）",
+    "glassQualityEco": "节能（Eco）",
+    "particlesEnabled": "粒子特效",
+    "particlesEnabledDesc": "在玻璃背景上显示漂浮粒子，关闭可进一步省电"
   },
   "timer": {
     "work": "专注中",

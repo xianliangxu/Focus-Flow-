@@ -115,7 +115,21 @@
     "changeLocation": "Change Location",
     "selectDbFolder": "Select New Storage Folder",
     "migratingData": "Moving data and restarting, please wait...",
-    "migrationFailed": "Failed to change data location"
+    "migrationFailed": "Failed to change data location",
+    "appearance": "Appearance",
+    "appearanceDesc": "Fluid glass material, particle effects and light/dark theme",
+    "theme": "Theme",
+    "themeDesc": "Switch between light / dark interface, applies instantly and is saved",
+    "light": "Light",
+    "dark": "Dark",
+    "glassQuality": "Glass quality",
+    "glassQualityDesc": "Affects fluid rendering sharpness and performance; Eco recommended on low-end devices",
+    "glassQualityAuto": "Auto",
+    "glassQualityHigh": "High",
+    "glassQualityBalanced": "Balanced",
+    "glassQualityEco": "Eco",
+    "particlesEnabled": "Particles",
+    "particlesEnabledDesc": "Show floating particles over the glass background; disable to save power"
   },
   "timer": {
     "work": "Focusing",
