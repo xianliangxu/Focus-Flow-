@@ -50,3 +50,5 @@ src/locales/zh.json / en.json  外观文案
 - `npm run build`（tsc + vite）：通过
 - `npm test`：267 passed / 1 skipped（与上游一致）
 - 深色 / 浅色两套界面均已在 Chromium 中截图验证（设置→外观→浅色 即时生效）
+
+> 说明：本行用于触发 GitHub Actions CI（workflow 文件变更的 push 本身不触发运行）。
