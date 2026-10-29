@@ -1,6 +1,6 @@
 {
   "productName": "FocusFlow",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "identifier": "com.focusflow.app",
   "build": {
     "frontendDist": "../dist",
