@@ -93,7 +93,7 @@ export function PomodoroClock({
       for (let i = 0; i < 22; i++) {
         arr.push({
           a: Math.random() * Math.PI * 2,
-          r: 58 + Math.random() * 10,          // 环绕半径（表盘外缘附近，随实际尺寸缩放）
+          r: 58 + Math.random() * 10,
           speed: (0.08 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1),
           size: 1.1 + Math.random() * 1.9,
           color: Math.random() > 0.5 ? '#3cc8ff' : '#00e7d2',
@@ -171,7 +171,7 @@ export function PomodoroClock({
   }, [isEditing]);
 
   // 指针角度
-  const minuteDeg = Math.min(100, Math.max(0, progress)) * 3.6; // 已完成进度，从 12 点顺时针
+  const minuteDeg = Math.min(100, Math.max(0, progress)) * 3.6;
   const totalSeconds =
     mode === 'work' ? workDuration : mode === 'break' ? breakDuration : mode === 'longBreak' ? longBreakDuration : workDuration;
   const elapsedSeconds = Math.min(totalSeconds, Math.max(0, totalSeconds - timeRemaining));
@@ -190,6 +190,7 @@ export function PomodoroClock({
 
   return (
     <div className="pomodoro-clock">
+      {/* 左：圆形指针表盘 + 环绕粒子 */}
       <div className="clock-stage">
         <canvas ref={canvasRef} className="clock-particles" aria-hidden="true" />
 
@@ -273,87 +274,86 @@ export function PomodoroClock({
           <circle cx="120" cy="120" r="9" fill="#0c1016" stroke={palette.stroke} strokeWidth="2.4" />
           <circle cx="120" cy="120" r="2.5" fill={palette.stroke} />
         </svg>
+      </div>
 
-        {/* 中央时间 */}
-        <div className="clock-center" onClick={handleTimeClick} title={isRunning ? t('timer.runningNoEdit') || '' : t('timer.clickToEdit') || ''}>
-          {isEditing ? (
-            <div className="flex items-center justify-center gap-1">
-              <Input
-                ref={inputRef}
-                type="number"
-                value={editMinutes}
-                onChange={(e) => setEditMinutes(e.target.value)}
-                onBlur={handleTimeSubmit}
-                onKeyDown={(e) => e.key === 'Enter' && handleTimeSubmit()}
-                className="clock-time-edit"
-                min={1}
-                max={120}
-                onClick={(e) => e.stopPropagation()}
-              />
-              <span className="clock-time-unit">min</span>
-            </div>
+      {/* 中：数字钟（点击可编辑）+ 会话点 */}
+      <div className="clock-digital" onClick={handleTimeClick} title={isRunning ? t('timer.runningNoEdit') || '' : t('timer.clickToEdit') || ''}>
+        <div className={`clock-mode-tag ${palette.label}`}>
+          {modeIcon}
+          <span>{modeText}</span>
+        </div>
+        {isEditing ? (
+          <div className="flex items-center justify-center gap-1">
+            <Input
+              ref={inputRef}
+              type="number"
+              value={editMinutes}
+              onChange={(e) => setEditMinutes(e.target.value)}
+              onBlur={handleTimeSubmit}
+              onKeyDown={(e) => e.key === 'Enter' && handleTimeSubmit()}
+              className="clock-time-edit"
+              min={1}
+              max={120}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="clock-time-unit">min</span>
+          </div>
+        ) : (
+          <div className="clock-digital-time" style={{ color: palette.stroke }}>
+            {formattedTime}
+          </div>
+        )}
+        <div className="clock-sessions">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className={`clock-session-dot ${i < completedSessions % 4 ? 'active' : ''}`} style={i < completedSessions % 4 ? { background: palette.stroke } : undefined} />
+          ))}
+        </div>
+      </div>
+
+      {/* 右：模式按钮组（常驻）+ 主控制按钮（上下排列、左右对齐） */}
+      <div className="clock-side">
+        <div className="clock-modes">
+          <button className={`clock-mode-btn ${mode === 'work' ? 'active' : ''}`} onClick={() => onSetMode?.('work')}>
+            <Brain size={12} /> {t('timer.work')}
+          </button>
+          <button className={`clock-mode-btn ${mode === 'break' ? 'active' : ''}`} onClick={() => onSetMode?.('break')}>
+            <Coffee size={12} /> {t('timer.break')}
+          </button>
+          <button className={`clock-mode-btn ${mode === 'longBreak' ? 'active' : ''}`} onClick={() => onSetMode?.('longBreak')}>
+            <Coffee size={12} /> {t('timer.longBreak')}
+          </button>
+        </div>
+
+        <div className="clock-main">
+          {mode === 'idle' ? (
+            <Button size="sm" className="clock-start-btn" onClick={onStart}>
+              <Play size={14} className="mr-1" />
+              {t('timer.startFocus')}
+            </Button>
           ) : (
             <>
-              <div className={`clock-mode-tag ${palette.label}`}>
-                {modeIcon}
-                <span>{modeText}</span>
-              </div>
-              <div className="clock-time" style={{ color: palette.stroke }}>
-                {formattedTime}
+              {isRunning ? (
+                <Button size="sm" variant="outline" className="clock-side-btn" onClick={onPause}>
+                  <Pause size={14} className="mr-1" />
+                  {t('timer.pause')}
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="clock-side-btn" onClick={onResume}>
+                  <Play size={14} className="mr-1" />
+                  {t('timer.resume')}
+                </Button>
+              )}
+              <div className="clock-side-sub">
+                <Button size="sm" variant="outline" className="control-btn" onClick={onStop}>
+                  <Square size={14} />
+                </Button>
+                <Button size="sm" variant="outline" className="control-btn" onClick={onSkip}>
+                  <SkipForward size={14} />
+                </Button>
               </div>
             </>
           )}
         </div>
-      </div>
-
-      {/* 会话点 */}
-      <div className="clock-sessions">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className={`clock-session-dot ${i < completedSessions % 4 ? 'active' : ''}`} style={i < completedSessions % 4 ? { background: palette.stroke } : undefined} />
-        ))}
-      </div>
-
-      {/* 模式选择（idle） */}
-      {mode === 'idle' && onSetMode && (
-        <div className="clock-modes">
-          <button className="clock-mode-btn" onClick={() => onSetMode('work')}>
-            <Brain size={12} /> {t('timer.work')}
-          </button>
-          <button className="clock-mode-btn" onClick={() => onSetMode('break')}>
-            <Coffee size={12} /> {t('timer.break')}
-          </button>
-          <button className="clock-mode-btn" onClick={() => onSetMode('longBreak')}>
-            <Coffee size={12} /> {t('timer.longBreak')}
-          </button>
-        </div>
-      )}
-
-      {/* 控制按钮 */}
-      <div className="clock-controls">
-        {mode === 'idle' ? (
-          <Button size="sm" className="control-btn-primary" onClick={onStart}>
-            <Play size={14} className="mr-1" />
-            {t('timer.startFocus')}
-          </Button>
-        ) : (
-          <>
-            {isRunning ? (
-              <Button size="sm" variant="outline" className="control-btn" onClick={onPause}>
-                <Pause size={14} />
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" className="control-btn" onClick={onResume}>
-                <Play size={14} />
-              </Button>
-            )}
-            <Button size="sm" variant="outline" className="control-btn" onClick={onStop}>
-              <Square size={14} />
-            </Button>
-            <Button size="sm" variant="outline" className="control-btn" onClick={onSkip}>
-              <SkipForward size={14} />
-            </Button>
-          </>
-        )}
       </div>
     </div>
   );
