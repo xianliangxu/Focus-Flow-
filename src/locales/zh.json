@@ -420,7 +420,12 @@
     "minsSecs": "{{mins}}分{{secs}}秒",
     "secs": "{{secs}}秒",
     "hM": "{{hours}}h {{mins}}m",
-    "m": "{{mins}}m"
+    "m": "{{mins}}m",
+    "calendar": {
+      "today": "今天",
+      "prevMonth": "上月",
+      "nextMonth": "下月"
+    }
   },
   "messages": {
     "confirmDelete": "确定要删除这个模板吗？此操作无法撤销。",

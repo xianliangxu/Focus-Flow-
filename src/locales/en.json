@@ -420,7 +420,12 @@
     "minsSecs": "{{mins}}m {{secs}}s",
     "secs": "{{secs}}s",
     "hM": "{{hours}}h {{mins}}m",
-    "m": "{{mins}}m"
+    "m": "{{mins}}m",
+    "calendar": {
+      "today": "Today",
+      "prevMonth": "Prev Month",
+      "nextMonth": "Next Month"
+    }
   },
   "messages": {
     "confirmDelete": "Are you sure you want to delete this template? This cannot be undone.",
