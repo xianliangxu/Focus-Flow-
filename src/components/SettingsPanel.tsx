@@ -1,73 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/store';
+import { ArrowLeft, Settings, Clock, Volume2, RotateCcw, Flag, Zap, Repeat, Plus, Trash2, Edit2, Bookmark, Download, Upload, Save, Database, FolderOpen, Sun, Moon, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import {
-  Clock,
-  Database,
-  FolderOpen,
-  Repeat,
-  Plus,
-  Edit2,
-  Trash2,
-  Flag,
-  RotateCcw,
-  Bookmark,
-  Save,
-  Upload,
-  Download,
-  Sun,
-  Moon,
-  Sparkles,
-} from 'lucide-react';
-import type { RecurringTemplate, TaskPriority, ConfigProfile } from '@/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ByokSettingsSection } from '@/components/ByokSettingsSection';
+import type { AppState, TimerMode, GlobalViewSortMode, Zone, RecurringTemplate, TaskPriority, ConfigProfile } from '@/types';
 import { DEFAULT_SETTINGS } from '@/types';
-import { getSystemLanguage } from '@/lib/language-utils';
+import { useAppStore } from '@/store';
+import { save, open } from '@tauri-apps/plugin-dialog';
+import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'sonner';
+import { getDbPath, changeDbPath } from '@/lib/db';
+import { recordDataSnapshotForSwitch } from '@/lib/storage-adapter';
 
 interface SettingsPanelProps {
-  settings: {
-    language: string;
-    workDuration: number;
-    breakDuration: number;
-    longBreakDuration: number;
-    autoStartBreak: boolean;
-    soundEnabled: boolean;
-    collapsed: boolean;
-    collapsePosition: { x: number; y: number };
-    autoSaveEnabled: boolean;
-    autoSaveInterval: number;
-    globalViewSort: { mode: string; priorityWeight: number; deadlineWeight: number };
-    globalViewLeafMode: boolean;
-    globalViewGroupByZone: boolean;
-    zoneViewSort: { mode: string; priorityWeight: number; deadlineWeight: number };
-    zoneViewLeafMode: boolean;
-    theme: 'dark' | 'light';
-    glassQuality: 'auto' | 'high' | 'balanced' | 'eco';
-    particlesEnabled: boolean;
-  };
-  zones: { id: string; name?: string; nameKey?: string; color: string }[];
+  settings: AppState['settings'];
+  zones: Zone[];
   recurringTemplates: RecurringTemplate[];
-  onAddRecurringTemplate: (template: Omit<RecurringTemplate, 'id' | 'lastTriggeredAt' | 'isActive'>) => void;
+  onAddRecurringTemplate: (template: Omit<RecurringTemplate, 'id' | 'lastTriggeredAt'>) => void;
   onUpdateRecurringTemplate: (id: string, updates: Partial<RecurringTemplate>) => void;
   onDeleteRecurringTemplate: (id: string) => void;
   onBack: () => void;
-  onUpdateSettings: (settings: Partial<any>) => void;
-  onPreviewMode: (mode: 'work' | 'break' | 'longBreak') => void;
+  onUpdateSettings: (settings: Partial<AppState['settings']>) => void;
+  onPreviewMode?: (mode: TimerMode) => void;
 }
-
-const LANGUAGE_OPTIONS = [
-  { value: 'zh', label: '简体中文' },
-  { value: 'en', label: 'English' },
-  { value: 'ja', label: '日本語' },
-];
 
 export function SettingsPanel({
   settings,
@@ -81,70 +41,135 @@ export function SettingsPanel({
   onPreviewMode,
 }: SettingsPanelProps) {
   const { t, i18n } = useTranslation();
+  const [workMinutes, setWorkMinutes] = useState(Math.floor(settings.workDuration / 60));
+  const [breakMinutes, setBreakMinutes] = useState(Math.floor(settings.breakDuration / 60));
+  const [longBreakMinutes, setLongBreakMinutes] = useState(Math.floor(settings.longBreakDuration / 60));
+  const [priorityWeight, setPriorityWeight] = useState(settings.globalViewSort.priorityWeight * 100);
+  const [autoSaveInterval, setAutoSaveInterval] = useState(settings.autoSaveInterval || 60);
+  // deadlineWeight 由 priorityWeight 计算得出，保证两者之和为 100
+  const deadlineWeight = useMemo(() => 100 - priorityWeight, [priorityWeight]);
+
+  // 数据存储路径相关状态
+  const [currentDbPath, setCurrentDbPath] = useState<string>('');
+
+  // 定时任务配置弹窗状态
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
   const [recTitle, setRecTitle] = useState('');
   const [recDesc, setRecDesc] = useState('');
   const [recZoneId, setRecZoneId] = useState('');
   const [recPriority, setRecPriority] = useState<TaskPriority>('medium');
-  const [recIntervalValue, setRecIntervalValue] = useState(60);
-  const [recIntervalUnit, setRecIntervalUnit] = useState<'minutes' | 'hours' | 'days'>('minutes');
-  const [recDeadlineValue, setRecDeadlineValue] = useState(24);
-  const [recDeadlineUnit, setRecDeadlineUnit] = useState<'hours' | 'days'>('hours');
-  const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
-  const [currentDbPath, setCurrentDbPath] = useState<string>('');
-  const [autoSaveInterval, setAutoSaveInterval] = useState(settings.autoSaveInterval);
-  const [configProfiles, setConfigProfiles] = useState<ConfigProfile[]>([]);
+  const [recIntervalValue, setRecIntervalValue] = useState(1);
+  const [recIntervalUnit, setRecIntervalUnit] = useState<'minutes' | 'hours' | 'days'>('days');
+  const [recDeadlineValue, setRecDeadlineValue] = useState(2);
+  const [recDeadlineUnit, setRecDeadlineUnit] = useState<'hours' | 'days'>('days');
+
+  // 配置快照相关状态
+  const { configProfiles, saveConfigProfile, applyConfigProfile, deleteConfigProfile, updateConfigProfile, importConfigProfile } = useAppStore();
   const [showSaveProfileDialog, setShowSaveProfileDialog] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [editingProfile, setEditingProfile] = useState<ConfigProfile | null>(null);
   const [editingProfileName, setEditingProfileName] = useState('');
 
-  // 获取当前数据库路径
+  // 加载当前数据库路径
   useEffect(() => {
-    const loadDbPath = async () => {
-      try {
-        const { getDbPath } = await import('@/lib/db');
-        const path = await getDbPath();
-        setCurrentDbPath(path);
-      } catch {
-        // browser mode
-      }
-    };
-    loadDbPath();
+    getDbPath()
+      .then(path => setCurrentDbPath(path))
+      .catch(err => {
+        console.error('获取路径失败:', err);
+        setCurrentDbPath('获取路径失败，使用默认相对路径');
+      });
   }, []);
 
-  // 获取配置快照列表
+  // 初始化默认分区
   useEffect(() => {
-    setConfigProfiles(useAppStore.getState().configProfiles || []);
-  }, []);
+    if (zones.length > 0 && !recZoneId) {
+      setRecZoneId(zones[0].id);
+    }
+  }, [zones, recZoneId]);
 
+  // 同步语言设置
+  useEffect(() => {
+    if (settings.language && settings.language !== i18n.language) {
+      i18n.changeLanguage(settings.language);
+    }
+  }, [settings.language, i18n]);
+
+  // 更改数据库路径
   const handleChangeDbPath = async () => {
     try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({
-        directory: true,
-        title: t('settings.selectDbFolder'),
+      const selectedDir = await open({
+        directory: true, // 选择文件夹
+        multiple: false,
+        title: t('settings.selectDbFolder') || 'Select Storage Folder'
       });
-      if (selected && typeof selected === 'string') {
-        toast.info(t('settings.migratingData'), { duration: 3000 });
-        await invoke('change_db_path', { newPath: selected });
+
+      if (selectedDir && typeof selectedDir === 'string') {
+        toast.info(t('settings.migratingData') || 'Moving data, please wait...');
+        // 🚀 记录切换前的数据快照
+        recordDataSnapshotForSwitch();
+        await changeDbPath(selectedDir);
+        // 🚀 切换成功后更新 UI 显示的路径
+        const newPath = await getDbPath();
+        setCurrentDbPath(newPath);
       }
     } catch (e) {
-      console.error('change db path failed:', e);
-      toast.error(t('settings.migrationFailed'));
+      console.error('Change DB path failed', e);
+      toast.error(t('settings.migrationFailed') || 'Failed to change data location');
     }
   };
 
+  // 打开编辑弹窗
+  const handleEditTemplate = (tpl: RecurringTemplate) => {
+    setEditingTemplate(tpl);
+    setRecTitle(tpl.title);
+    setRecDesc(tpl.description);
+    setRecZoneId(tpl.zoneId);
+    setRecPriority(tpl.priority);
+
+    // 反推 interval 单位
+    if (tpl.intervalMinutes < 60) {
+      setRecIntervalValue(tpl.intervalMinutes);
+      setRecIntervalUnit('minutes');
+    } else if (tpl.intervalMinutes < 1440) {
+      setRecIntervalValue(Math.round(tpl.intervalMinutes / 60));
+      setRecIntervalUnit('hours');
+    } else {
+      setRecIntervalValue(Math.round(tpl.intervalMinutes / 1440));
+      setRecIntervalUnit('days');
+    }
+
+    // 反推 deadline 单位
+    if (tpl.deadlineOffsetHours < 24) {
+      setRecDeadlineValue(tpl.deadlineOffsetHours);
+      setRecDeadlineUnit('hours');
+    } else {
+      setRecDeadlineValue(Math.round(tpl.deadlineOffsetHours / 24));
+      setRecDeadlineUnit('days');
+    }
+
+    setShowRecurringDialog(true);
+  };
+
   const handleSaveRecurring = () => {
-    if (!recTitle.trim()) return;
-    const intervalMinutes =
-      recIntervalUnit === 'minutes' ? recIntervalValue :
-      recIntervalUnit === 'hours' ? recIntervalValue * 60 :
-      recIntervalValue * 1440;
-    const deadlineOffsetHours =
-      recDeadlineUnit === 'hours' ? recDeadlineValue : recDeadlineValue * 24;
+    if (!recTitle.trim() || !recZoneId) return;
+
+    // 转换为底层需要的单位，并强制最低 5 分钟安全限制
+    let intervalMinutes = recIntervalUnit === 'days'
+      ? recIntervalValue * 24 * 60
+      : recIntervalUnit === 'hours'
+        ? recIntervalValue * 60
+        : recIntervalValue;
+
+    // 强制防刷屏限制：任何任务的生成间隔不得低于 5 分钟
+    if (intervalMinutes < 5) {
+      intervalMinutes = 5;
+    }
+
+    const deadlineOffsetHours = recDeadlineUnit === 'days' ? recDeadlineValue * 24 : recDeadlineValue;
 
     if (editingTemplate) {
+      // 编辑模式
       onUpdateRecurringTemplate(editingTemplate.id, {
         title: recTitle.trim(),
         description: recDesc.trim(),
@@ -154,6 +179,7 @@ export function SettingsPanel({
         deadlineOffsetHours,
       });
     } else {
+      // 新建模式
       onAddRecurringTemplate({
         title: recTitle.trim(),
         description: recDesc.trim(),
@@ -161,156 +187,382 @@ export function SettingsPanel({
         priority: recPriority,
         intervalMinutes,
         deadlineOffsetHours,
+        isActive: true,
+        scope: 'global',
       });
     }
+
     setShowRecurringDialog(false);
     setEditingTemplate(null);
     setRecTitle('');
     setRecDesc('');
+    setRecIntervalValue(1);
+    setRecDeadlineValue(2);
   };
 
-  const handleEditTemplate = (tpl: RecurringTemplate) => {
-    setEditingTemplate(tpl);
-    setRecTitle(tpl.title);
-    setRecDesc(tpl.description || '');
-    setRecZoneId(tpl.zoneId);
-    setRecPriority(tpl.priority);
-    if (tpl.intervalMinutes % 1440 === 0) {
-      setRecIntervalUnit('days');
-      setRecIntervalValue(tpl.intervalMinutes / 1440);
-    } else if (tpl.intervalMinutes % 60 === 0) {
-      setRecIntervalUnit('hours');
-      setRecIntervalValue(tpl.intervalMinutes / 60);
-    } else {
-      setRecIntervalUnit('minutes');
-      setRecIntervalValue(tpl.intervalMinutes);
-    }
-    if (tpl.deadlineOffsetHours % 24 === 0) {
-      setRecDeadlineUnit('days');
-      setRecDeadlineValue(tpl.deadlineOffsetHours / 24);
-    } else {
-      setRecDeadlineUnit('hours');
-      setRecDeadlineValue(tpl.deadlineOffsetHours);
-    }
-    setShowRecurringDialog(true);
-  };
-
-  const handleReset = () => {
-    onUpdateSettings(DEFAULT_SETTINGS);
-    toast.success(t('messages.settingsReset'));
-  };
-
+  // 导出配置
   const handleExportConfig = async () => {
-    const state = useAppStore.getState();
-    const data = {
-      settings: state.settings,
-      customTemplates: state.customTemplates || [],
-      recurringTemplates: state.recurringTemplates || [],
-      exportedAt: Date.now(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `focus-flow-config-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1200);
-    toast.success(t('profile.exportSuccess'));
+    try {
+      const state = useAppStore.getState();
+      const exportData = {
+        version: 1,
+        name: `${t('profile.exportName') || 'Environment Backup'} ${new Date().toLocaleDateString()}`,
+        settings: state.settings,
+        customTemplates: state.customTemplates,
+        recurringTemplates: state.recurringTemplates.filter((r: RecurringTemplate) => r.scope === 'global' || !r.scope)
+      };
+
+      const filePath = await save({
+        defaultPath: `focus-flow-env-${Date.now()}.json`,
+        filters:[{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (filePath) {
+        await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+        toast.success(t('profile.exportSuccess'));
+      }
+    } catch (e) {
+      console.error('导出配置失败', e);
+      toast.error(t('profile.exportFailed') || 'Export failed');
+    }
   };
 
+  // 导入配置
   const handleImportConfig = async () => {
     try {
-      const { open, readTextFile } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({ multiple: false });
-      if (!selected || typeof selected !== 'string') return;
-      const text = await readTextFile(selected);
-      const parsed = JSON.parse(text);
-      const ok = useAppStore.getState().importConfigProfile(parsed);
-      setConfigProfiles(useAppStore.getState().configProfiles || []);
-      if (ok) toast.success(t('profile.profileImported'));
-      else toast.error(t('profile.importFailed'));
-    } catch {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (selected && typeof selected === 'string') {
+        const content = await readTextFile(selected);
+        const success = importConfigProfile(JSON.parse(content));
+        if (success) {
+          toast.success(t('profile.profileImported'));
+        } else {
+          toast.error(t('profile.importFailed'));
+        }
+      }
+    } catch (e) {
+      console.error('导入配置失败', e);
       toast.error(t('profile.importFailed'));
     }
   };
 
-  const handleSaveProfile = (name: string) => {
-    const state = useAppStore.getState();
-    state.saveConfigProfile(name, state.recurringTemplates || []);
-    setConfigProfiles(state.configProfiles || []);
+  // 同步外部 settings 变化到本地状态
+  useEffect(() => {
+    setWorkMinutes(Math.floor(settings.workDuration / 60));
+  }, [settings.workDuration]);
+
+  useEffect(() => {
+    setBreakMinutes(Math.floor(settings.breakDuration / 60));
+  }, [settings.breakDuration]);
+
+  useEffect(() => {
+    setLongBreakMinutes(Math.floor(settings.longBreakDuration / 60));
+  }, [settings.longBreakDuration]);
+
+  useEffect(() => {
+    setAutoSaveInterval(settings.autoSaveInterval || 60);
+  }, [settings.autoSaveInterval]);
+
+  const handleWorkDurationChange = (value: number[]) => {
+    const minutes = value[0];
+    setWorkMinutes(minutes);
+    onUpdateSettings({ workDuration: minutes * 60 });
+  };
+
+  const handleBreakDurationChange = (value: number[]) => {
+    const minutes = value[0];
+    setBreakMinutes(minutes);
+    onUpdateSettings({ breakDuration: minutes * 60 });
+  };
+
+  const handleLongBreakDurationChange = (value: number[]) => {
+    const minutes = value[0];
+    setLongBreakMinutes(minutes);
+    onUpdateSettings({ longBreakDuration: minutes * 60 });
+  };
+
+  // 预览模式 - 只在完成拖动后触发
+  const handleWorkDurationCommit = () => {
+    onPreviewMode?.('work');
+  };
+
+  const handleBreakDurationCommit = () => {
+    onPreviewMode?.('break');
+  };
+
+  const handleLongBreakDurationCommit = () => {
+    onPreviewMode?.('longBreak');
+  };
+
+  const handlePriorityWeightChange = (value: number[]) => {
+    const weight = value[0];
+    setPriorityWeight(weight);
+    // deadlineWeight 会通过 useMemo 自动计算
+    onUpdateSettings({
+      globalViewSort: {
+        mode: settings.globalViewSort.mode as GlobalViewSortMode,
+        priorityWeight: weight / 100,
+        deadlineWeight: (100 - weight) / 100,
+      },
+      zoneViewSort: {
+        mode: settings.zoneViewSort?.mode || 'manual',
+        priorityWeight: weight / 100,
+        deadlineWeight: (100 - weight) / 100,
+      }
+    });
+  };
+
+  const handleDeadlineWeightChange = (value: number[]) => {
+    // 紧急度 Slider 正向联动：拖动紧急度时，优先级跟随反向变动
+    const dWeight = value[0];
+    const pWeight = 100 - dWeight;
+    setPriorityWeight(pWeight);
+    onUpdateSettings({
+      globalViewSort: {
+        mode: settings.globalViewSort.mode as GlobalViewSortMode,
+        priorityWeight: pWeight / 100,
+        deadlineWeight: dWeight / 100,
+      },
+      zoneViewSort: {
+        mode: settings.zoneViewSort?.mode || 'manual',
+        priorityWeight: pWeight / 100,
+        deadlineWeight: dWeight / 100,
+      }
+    });
+  };
+
+  const handleReset = () => {
+    setWorkMinutes(25);
+    setBreakMinutes(5);
+    setLongBreakMinutes(15);
+    setPriorityWeight(DEFAULT_SETTINGS.globalViewSort.priorityWeight * 100);
+    setAutoSaveInterval(DEFAULT_SETTINGS.autoSaveInterval);
+    // deadlineWeight 会通过 useMemo 自动计算
+    onUpdateSettings({
+      workDuration: DEFAULT_SETTINGS.workDuration,
+      breakDuration: DEFAULT_SETTINGS.breakDuration,
+      longBreakDuration: DEFAULT_SETTINGS.longBreakDuration,
+      autoStartBreak: DEFAULT_SETTINGS.autoStartBreak,
+      soundEnabled: DEFAULT_SETTINGS.soundEnabled,
+      globalViewSort: DEFAULT_SETTINGS.globalViewSort,
+      zoneViewSort: DEFAULT_SETTINGS.zoneViewSort,
+      zoneViewLeafMode: DEFAULT_SETTINGS.zoneViewLeafMode,
+      globalViewLeafMode: DEFAULT_SETTINGS.globalViewLeafMode,
+      autoSaveEnabled: DEFAULT_SETTINGS.autoSaveEnabled,
+      autoSaveInterval: DEFAULT_SETTINGS.autoSaveInterval,
+    });
   };
 
   return (
     <div className="settings-panel-container">
+      {/* Header */}
       <div className="settings-panel-header">
-        <Button variant="ghost" size="icon" className="back-btn" onClick={onBack} title={t('common.back')}>
-          <RotateCcw size={14} />
+        <Button
+          size="icon"
+          variant="ghost"
+          className="back-btn"
+          onClick={onBack}
+        >
+          <ArrowLeft size={16} />
         </Button>
         <div className="settings-panel-title">
-          <Clock size={14} className="text-blue-400" />
-          {t('settings.title')}
+          <Settings size={16} className="text-blue-400" />
+          <span>{t('settings.title')}</span>
         </div>
       </div>
 
+      {/* Settings Content */}
       <div className="settings-content">
-        {/* Language */}
+        {/* Language Settings */}
         <div className="settings-section">
-          <h3 className="settings-section-title">{t('settings.language')}</h3>
+          <h3 className="settings-section-title">
+            <Settings size={12} className="mr-1.5" />
+            {t('settings.language')}
+          </h3>
           <div className="setting-item">
-            <Select
-              value={settings.language}
-              onValueChange={(value) => {
-                onUpdateSettings({ language: value, languageManual: true });
-                i18n.changeLanguage(value);
-              }}
-            >
-              <SelectTrigger className="w-full h-8 text-xs bg-black/30 border-white/20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* AI BYOK Settings */}
-        <div className="settings-section">
-          <h3 className="settings-section-title">{t('nlp.settingsTitle')}</h3>
-          <p className="settings-section-desc">{t('nlp.settingsDesc')}</p>
-          <div className="setting-item flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-white/50">{t('nlp.statusNone')}</span>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
-                {t('nlp.editConfig')}
-              </Button>
+            <div className="setting-label">
+              <span>{t('settings.language')}</span>
+              <Select
+                value={settings.language || 'zh'}
+                onValueChange={(val) => {
+                  // 用户手动切换语言，设置 languageManual 标志
+                  onUpdateSettings({ language: val, languageManual: true });
+                  i18n.changeLanguage(val);
+                }}
+              >
+                <SelectTrigger className="w-32 h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zh">简体中文</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
 
-        {/* Appearance */}
+        {/* BYOK / AI 编辑配置 */}
+        <ByokSettingsSection />
+
+        {/* Timer Settings */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">
+            <Clock size={12} className="mr-1.5" />
+            {t('settings.timerSettings')}
+          </h3>
+
+          {/* Work Duration */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.workDuration')} {t('settings.workDurationMinutes')}</span>
+              <Input
+                type="number"
+                value={workMinutes}
+                onChange={(e) => {
+                  const val = Math.max(1, parseInt(e.target.value) || 0);
+                  setWorkMinutes(val);
+                  onUpdateSettings({ workDuration: val * 60 });
+                }}
+                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
+                min={1}
+              />
+            </div>
+            <Slider
+              value={[workMinutes]}
+              onValueChange={handleWorkDurationChange}
+              onValueCommit={handleWorkDurationCommit}
+              min={1}
+              max={120}
+              step={1}
+              className="setting-slider mt-2"
+            />
+          </div>
+
+          {/* Break Duration */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.breakDuration')} {t('settings.workDurationMinutes')}</span>
+              <Input
+                type="number"
+                value={breakMinutes}
+                onChange={(e) => {
+                  const val = Math.max(1, parseInt(e.target.value) || 0);
+                  setBreakMinutes(val);
+                  onUpdateSettings({ breakDuration: val * 60 });
+                }}
+                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
+                min={1}
+              />
+            </div>
+            <Slider
+              value={[breakMinutes]}
+              onValueChange={handleBreakDurationChange}
+              onValueCommit={handleBreakDurationCommit}
+              min={1}
+              max={60}
+              step={1}
+              className="setting-slider mt-2"
+            />
+          </div>
+
+          {/* Long Break Duration */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.longBreakDuration')} {t('settings.workDurationMinutes')}</span>
+              <Input
+                type="number"
+                value={longBreakMinutes}
+                onChange={(e) => {
+                  const val = Math.max(1, parseInt(e.target.value) || 0);
+                  setLongBreakMinutes(val);
+                  onUpdateSettings({ longBreakDuration: val * 60 });
+                }}
+                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
+                min={1}
+              />
+            </div>
+            <Slider
+              value={[longBreakMinutes]}
+              onValueChange={handleLongBreakDurationChange}
+              onValueCommit={handleLongBreakDurationCommit}
+              min={1}
+              max={90}
+              step={1}
+              className="setting-slider mt-2"
+            />
+          </div>
+        </div>
+
+        {/* Weighted Sort Settings */}
+        <div className="settings-section">
+          <h3 className="settings-section-title">
+            <Flag size={12} className="mr-1.5" />
+            {t('settings.weightedSort')}
+          </h3>
+          <p className="settings-section-desc">
+            {t('settings.weightedSortDesc')}
+          </p>
+
+          {/* Priority Weight */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <Flag size={12} className="mr-1.5 text-red-400" />
+              <span>{t('settings.priorityWeight')}</span>
+              <span className="setting-value">{priorityWeight}%</span>
+            </div>
+            <Slider
+              value={[priorityWeight]}
+              onValueChange={handlePriorityWeightChange}
+              min={0}
+              max={100}
+              step={10}
+              className="setting-slider mt-2"
+            />
+          </div>
+
+          {/* Urgency Weight */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <Zap size={12} className="mr-1.5 text-orange-400" />
+              <span>{t('settings.deadlineWeight')}</span>
+              <span className="setting-value">{deadlineWeight}%</span>
+            </div>
+            <Slider
+              value={[deadlineWeight]}
+              onValueChange={handleDeadlineWeightChange}
+              min={0}
+              max={100}
+              step={10}
+              className="setting-slider mt-2"
+            />
+          </div>
+        </div>
+
+        {/* 外观 Appearance Settings（流体玻璃 + 明暗主题 + 粒子特效） */}
         <div className="settings-section">
           <h3 className="settings-section-title">
             <Sparkles size={12} className="mr-1.5 text-cyan-400" />
             {t('settings.appearance')}
           </h3>
-          <p className="settings-section-desc">{t('settings.appearanceDesc')}</p>
+          <p className="settings-section-desc">
+            {t('settings.appearanceDesc')}
+          </p>
 
-          {/* Theme toggle */}
-          <div className="setting-item">
+          {/* Theme: light / dark */}
+          <div className="setting-item switch">
             <div className="setting-label">
               <span>{t('settings.theme')}</span>
               <span className="setting-desc">{t('settings.themeDesc')}</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-black/20 border border-white/10 w-fit">
               <Button
                 size="sm"
-                variant="outline"
-                className={cn('h-8 flex-1 text-xs', settings.theme === 'light' ? 'border-cyan-400/70 text-cyan-300 bg-cyan-400/10' : 'border-white/15')}
+                className={`h-7 text-xs px-3 ${settings.theme === 'light' ? 'bg-cyan-500/90 hover:bg-cyan-500 text-white shadow-[0_0_10px_rgba(0,231,210,0.35)]' : 'bg-transparent text-white/50 hover:bg-white/10'}`}
                 onClick={() => onUpdateSettings({ theme: 'light' })}
               >
                 <Sun size={12} className="mr-1" />
@@ -318,8 +570,7 @@ export function SettingsPanel({
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                className={cn('h-8 flex-1 text-xs', settings.theme === 'dark' ? 'border-cyan-400/70 text-cyan-300 bg-cyan-400/10' : 'border-white/15')}
+                className={`h-7 text-xs px-3 ${settings.theme === 'dark' ? 'bg-cyan-500/90 hover:bg-cyan-500 text-white shadow-[0_0_10px_rgba(0,231,210,0.35)]' : 'bg-transparent text-white/50 hover:bg-white/10'}`}
                 onClick={() => onUpdateSettings({ theme: 'dark' })}
               >
                 <Moon size={12} className="mr-1" />
@@ -335,10 +586,10 @@ export function SettingsPanel({
               <span className="setting-desc">{t('settings.glassQualityDesc')}</span>
             </div>
             <Select
-              value={settings.glassQuality}
-              onValueChange={(value) => onUpdateSettings({ glassQuality: value })}
+              value={settings.glassQuality || 'auto'}
+              onValueChange={(v) => onUpdateSettings({ glassQuality: v as 'auto' | 'high' | 'balanced' | 'eco' })}
             >
-              <SelectTrigger className="w-full h-8 text-xs bg-black/30 border-white/20">
+              <SelectTrigger className="w-[150px] h-7 text-xs bg-black/30 border-white/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -357,85 +608,8 @@ export function SettingsPanel({
               <span className="setting-desc">{t('settings.particlesEnabledDesc')}</span>
             </div>
             <Switch
-              checked={settings.particlesEnabled}
+              checked={settings.particlesEnabled ?? true}
               onCheckedChange={(checked) => onUpdateSettings({ particlesEnabled: checked })}
-            />
-          </div>
-        </div>
-
-        {/* Timer Settings */}
-        <div className="settings-section">
-          <h3 className="settings-section-title">{t('settings.timerSettings')}</h3>
-
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.workDuration')} {t('settings.workDurationMinutes')}</span>
-              <Input
-                type="number"
-                value={Math.round(settings.workDuration / 60)}
-                onChange={(e) => {
-                  const minutes = Math.max(1, parseInt(e.target.value) || 25);
-                  onUpdateSettings({ workDuration: minutes * 60 });
-                }}
-                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
-                min={1}
-              />
-            </div>
-            <Slider
-              value={[Math.round(settings.workDuration / 60)]}
-              onValueChange={(value) => onUpdateSettings({ workDuration: value[0] * 60 })}
-              min={1}
-              max={120}
-              step={1}
-              className="setting-slider mt-2"
-            />
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.breakDuration')} {t('settings.workDurationMinutes')}</span>
-              <Input
-                type="number"
-                value={Math.round(settings.breakDuration / 60)}
-                onChange={(e) => {
-                  const minutes = Math.max(1, parseInt(e.target.value) || 5);
-                  onUpdateSettings({ breakDuration: minutes * 60 });
-                }}
-                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
-                min={1}
-              />
-            </div>
-            <Slider
-              value={[Math.round(settings.breakDuration / 60)]}
-              onValueChange={(value) => onUpdateSettings({ breakDuration: value[0] * 60 })}
-              min={1}
-              max={60}
-              step={1}
-              className="setting-slider mt-2"
-            />
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.longBreakDuration')} {t('settings.workDurationMinutes')}</span>
-              <Input
-                type="number"
-                value={Math.round(settings.longBreakDuration / 60)}
-                onChange={(e) => {
-                  const minutes = Math.max(1, parseInt(e.target.value) || 15);
-                  onUpdateSettings({ longBreakDuration: minutes * 60 });
-                }}
-                className="w-20 h-7 text-xs text-right font-mono bg-black/30 border-white/20 text-white"
-                min={1}
-              />
-            </div>
-            <Slider
-              value={[Math.round(settings.longBreakDuration / 60)]}
-              onValueChange={(value) => onUpdateSettings({ longBreakDuration: value[0] * 60 })}
-              min={1}
-              max={90}
-              step={1}
-              className="setting-slider mt-2"
             />
           </div>
         </div>
@@ -443,6 +617,7 @@ export function SettingsPanel({
         {/* Other Settings */}
         <div className="settings-section">
           <h3 className="settings-section-title">
+            <Volume2 size={12} className="mr-1.5" />
             {t('settings.otherSettings')}
           </h3>
 
@@ -774,7 +949,7 @@ export function SettingsPanel({
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="ghost" className="h-7 text-xs" onClick={() => setShowSaveProfileDialog(false)}>{t('common.cancel')}</Button>
               <Button className="h-7 text-xs bg-indigo-600 hover:bg-indigo-500 text-white" disabled={!profileName.trim()} onClick={() => {
-                handleSaveProfile(profileName.trim());
+                saveConfigProfile(profileName.trim(), recurringTemplates.filter((r: RecurringTemplate) => r.scope === 'global' || !r.scope));
                 setProfileName('');
                 setShowSaveProfileDialog(false);
                 toast.success(t('profile.profileSaved'));
