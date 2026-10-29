@@ -23,6 +23,7 @@ import { AutoTester } from '@/lib/auto-tester';
 import { startDataMonitor, stopDataMonitor } from '@/lib/db-monitor';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
+import './App.v26.css';
 
 function App() {
   const {
