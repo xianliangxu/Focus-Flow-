@@ -54,3 +54,5 @@ src/locales/zh.json / en.json  外观文案
 > 说明：本行用于触发 GitHub Actions CI（workflow 文件变更的 push 本身不触发运行）。
 
 > 二次触发：确认 Actions 调度（配置已核验：on.push.branches.main + build-windows if main）。
+
+> Actions 已启用，正式触发构建。
