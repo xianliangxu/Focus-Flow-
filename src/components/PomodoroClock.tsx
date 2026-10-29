@@ -65,7 +65,7 @@ export function PomodoroClock({
     return () => window.clearInterval(id);
   }, [isRunning]);
 
-  // 表盘环绕粒子
+  // 表盘环绕粒子（半径随实际尺寸自适应）
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -89,13 +89,15 @@ export function PomodoroClock({
 
     type P = { a: number; r: number; speed: number; size: number; color: string; drift: number };
     const makeParticles = (): P[] => {
+      const rect = canvas.getBoundingClientRect();
+      const baseR = (Math.min(rect.width, rect.height) || 104) * 0.42; // 环绕半径（表盘外缘附近，随实际尺寸缩放）
       const arr: P[] = [];
       for (let i = 0; i < 22; i++) {
         arr.push({
           a: Math.random() * Math.PI * 2,
-          r: 58 + Math.random() * 10,
+          r: baseR + Math.random() * 3,
           speed: (0.08 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1),
-          size: 1.1 + Math.random() * 1.9,
+          size: 0.7 + Math.random() * 1.2,
           color: Math.random() > 0.5 ? '#3cc8ff' : '#00e7d2',
           drift: Math.random() * Math.PI * 2,
         });
@@ -114,14 +116,14 @@ export function PomodoroClock({
       const t = performance.now() / 1000;
       for (const p of particles) {
         p.a += p.speed * 0.012;
-        const wobble = Math.sin(t * 0.7 + p.drift) * 2.2;
+        const wobble = Math.sin(t * 0.7 + p.drift) * 1.4;
         const x = cx + Math.cos(p.a) * (p.r + wobble);
         const y = cy + Math.sin(p.a) * (p.r * 0.92);
         const alpha = 0.28 + 0.45 * (0.5 + 0.5 * Math.sin(t * 1.1 + p.drift));
         ctx.globalAlpha = alpha;
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.arc(x, y, p.size, 0, Math.PI * 2);
         ctx.fill();
@@ -171,7 +173,7 @@ export function PomodoroClock({
   }, [isEditing]);
 
   // 指针角度
-  const minuteDeg = Math.min(100, Math.max(0, progress)) * 3.6;
+  const minuteDeg = Math.min(100, Math.max(0, progress)) * 3.6; // 已完成进度，从 12 点顺时针
   const totalSeconds =
     mode === 'work' ? workDuration : mode === 'break' ? breakDuration : mode === 'longBreak' ? longBreakDuration : workDuration;
   const elapsedSeconds = Math.min(totalSeconds, Math.max(0, totalSeconds - timeRemaining));
@@ -183,18 +185,18 @@ export function PomodoroClock({
   const modeIcon =
     mode === 'work' ? <Brain size={12} /> : mode === 'break' || mode === 'longBreak' ? <Coffee size={12} /> : <Timer size={12} />;
 
-  const polar = (deg: number, r: number, cx = 120, cy = 120) => {
+  const polar = (deg: number, r: number, cx = 60, cy = 60) => {
     const rad = ((deg - 90) * Math.PI) / 180;
     return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
   };
 
   return (
     <div className="pomodoro-clock">
-      {/* 左：圆形指针表盘 + 环绕粒子 */}
+      {/* 左：圆形指针表盘 + 环绕粒子（v2.7 压至 56px） */}
       <div className="clock-stage">
         <canvas ref={canvasRef} className="clock-particles" aria-hidden="true" />
 
-        <svg className="clock-face" viewBox="0 0 240 240" aria-hidden="true">
+        <svg className="clock-face" viewBox="0 0 120 120" aria-hidden="true">
           <defs>
             <linearGradient id="clockFaceFill" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="rgba(255,255,255,0.10)" />
@@ -207,23 +209,23 @@ export function PomodoroClock({
           </defs>
 
           {/* 外发光 */}
-          <circle cx="120" cy="120" r="118" fill="url(#clockGlow)" opacity="0.5" />
+          <circle cx="60" cy="60" r="59" fill="url(#clockGlow)" opacity="0.5" />
           {/* 表盘 */}
-          <circle cx="120" cy="120" r="112" fill="url(#clockFaceFill)" stroke="rgba(160,255,238,0.35)" strokeWidth="1.2" />
-          <circle cx="120" cy="120" r="100" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="2 4" />
+          <circle cx="60" cy="60" r="56" fill="url(#clockFaceFill)" stroke="rgba(160,255,238,0.35)" strokeWidth="0.8" />
+          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" strokeDasharray="1 2" />
 
           {/* 刻度 */}
           {Array.from({ length: 60 }, (_, i) => {
             const major = i % 5 === 0;
-            const a = polar(i * 6, major ? 96 : 99, 120, 120);
-            const b = polar(i * 6, 103, 120, 120);
+            const a = polar(i * 6, major ? 48 : 49.5, 60, 60);
+            const b = polar(i * 6, 51.5, 60, 60);
             const isQuarter = i % 15 === 0;
             return (
               <line
                 key={i}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 stroke={isQuarter ? palette.stroke : major ? 'rgba(200,240,255,0.55)' : 'rgba(200,240,255,0.25)'}
-                strokeWidth={isQuarter ? 2.6 : major ? 2 : 1}
+                strokeWidth={isQuarter ? 1.5 : major ? 1.1 : 0.6}
                 strokeLinecap="round"
               />
             );
@@ -231,13 +233,13 @@ export function PomodoroClock({
 
           {/* 数字 12/3/6/9 */}
           {[12, 3, 6, 9].map((n) => {
-            const p = polar(n === 12 ? 0 : n * 30, 82, 120, 120);
+            const p = polar(n === 12 ? 0 : n * 30, 41, 60, 60);
             return (
               <text
                 key={n}
-                x={p.x} y={p.y + 6}
+                x={p.x} y={p.y + 3}
                 textAnchor="middle"
-                fontSize="15"
+                fontSize="8"
                 fontWeight="600"
                 fill="rgba(230,250,255,0.75)"
               >
@@ -248,35 +250,35 @@ export function PomodoroClock({
 
           {/* 进度弧（已完成） */}
           <circle
-            cx="120" cy="120" r="106"
+            cx="60" cy="60" r="53"
             fill="none"
             stroke={palette.stroke}
-            strokeWidth="4"
+            strokeWidth="2.4"
             strokeLinecap="round"
-            strokeDasharray={`${(progress / 100) * (2 * Math.PI * 106)} ${2 * Math.PI * 106}`}
-            transform="rotate(-90 120 120)"
+            strokeDasharray={`${(progress / 100) * (2 * Math.PI * 53)} ${2 * Math.PI * 53}`}
+            transform="rotate(-90 60 60)"
             opacity="0.55"
             style={{ transition: 'stroke-dasharray 0.3s linear' }}
           />
 
           {/* 分针（进度） */}
-          <g transform={`rotate(${minuteDeg} 120 120)`}>
-            <line x1="120" y1="128" x2="120" y2="46" stroke={palette.stroke} strokeWidth="5" strokeLinecap="round" />
+          <g transform={`rotate(${minuteDeg} 60 60)`}>
+            <line x1="60" y1="64" x2="60" y2="23" stroke={palette.stroke} strokeWidth="2.6" strokeLinecap="round" />
           </g>
           {/* 秒针 */}
           {isRunning && (
-            <g transform={`rotate(${secondDeg} 120 120)`}>
-              <line x1="120" y1="132" x2="120" y2="34" stroke="#ff6b6b" strokeWidth="1.6" strokeLinecap="round" opacity="0.9" />
+            <g transform={`rotate(${secondDeg} 60 60)`}>
+              <line x1="60" y1="66" x2="60" y2="17" stroke="#ff6b6b" strokeWidth="0.9" strokeLinecap="round" opacity="0.9" />
             </g>
           )}
 
           {/* 中心 */}
-          <circle cx="120" cy="120" r="9" fill="#0c1016" stroke={palette.stroke} strokeWidth="2.4" />
-          <circle cx="120" cy="120" r="2.5" fill={palette.stroke} />
+          <circle cx="60" cy="60" r="4.5" fill="#0c1016" stroke={palette.stroke} strokeWidth="1.2" />
+          <circle cx="60" cy="60" r="1.2" fill={palette.stroke} />
         </svg>
       </div>
 
-      {/* 中：数字钟（点击可编辑）+ 会话点 */}
+      {/* 中：数字钟（点击可编辑）+ 会话点（v2.7 隐藏模式标签，模式由右侧标签指示） */}
       <div className="clock-digital" onClick={handleTimeClick} title={isRunning ? t('timer.runningNoEdit') || '' : t('timer.clickToEdit') || ''}>
         <div className={`clock-mode-tag ${palette.label}`}>
           {modeIcon}
@@ -310,48 +312,39 @@ export function PomodoroClock({
         </div>
       </div>
 
-      {/* 右：模式按钮组（常驻）+ 主控制按钮（上下排列、左右对齐） */}
+      {/* 右：模式按钮组（常驻）+ 主控制（v2.7 一行布局） */}
       <div className="clock-side">
         <div className="clock-modes">
           <button className={`clock-mode-btn ${mode === 'work' ? 'active' : ''}`} onClick={() => onSetMode?.('work')}>
-            <Brain size={12} /> {t('timer.work')}
+            <Brain size={11} /> {t('timer.work')}
           </button>
           <button className={`clock-mode-btn ${mode === 'break' ? 'active' : ''}`} onClick={() => onSetMode?.('break')}>
-            <Coffee size={12} /> {t('timer.break')}
+            <Coffee size={11} /> {t('timer.break')}
           </button>
           <button className={`clock-mode-btn ${mode === 'longBreak' ? 'active' : ''}`} onClick={() => onSetMode?.('longBreak')}>
-            <Coffee size={12} /> {t('timer.longBreak')}
+            <Coffee size={11} /> {t('timer.longBreak')}
           </button>
         </div>
 
         <div className="clock-main">
           {mode === 'idle' ? (
             <Button size="sm" className="clock-start-btn" onClick={onStart}>
-              <Play size={14} className="mr-1" />
+              <Play size={12} className="mr-1" />
               {t('timer.startFocus')}
             </Button>
           ) : (
-            <>
-              {isRunning ? (
-                <Button size="sm" variant="outline" className="clock-side-btn" onClick={onPause}>
-                  <Pause size={14} className="mr-1" />
-                  {t('timer.pause')}
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" className="clock-side-btn" onClick={onResume}>
-                  <Play size={14} className="mr-1" />
-                  {t('timer.resume')}
-                </Button>
-              )}
-              <div className="clock-side-sub">
-                <Button size="sm" variant="outline" className="control-btn" onClick={onStop}>
-                  <Square size={14} />
-                </Button>
-                <Button size="sm" variant="outline" className="control-btn" onClick={onSkip}>
-                  <SkipForward size={14} />
-                </Button>
-              </div>
-            </>
+            <div className="clock-running-row">
+              <Button size="sm" variant="outline" className="clock-side-btn" onClick={isRunning ? onPause : onResume}>
+                {isRunning ? <Pause size={12} className="mr-1" /> : <Play size={12} className="mr-1" />}
+                {isRunning ? t('timer.pause') : t('timer.resume')}
+              </Button>
+              <Button size="sm" variant="outline" className="control-btn" onClick={onStop} title={t('timer.stop')}>
+                <Square size={12} />
+              </Button>
+              <Button size="sm" variant="outline" className="control-btn" onClick={onSkip} title={t('timer.skip')}>
+                <SkipForward size={12} />
+              </Button>
+            </div>
           )}
         </div>
       </div>

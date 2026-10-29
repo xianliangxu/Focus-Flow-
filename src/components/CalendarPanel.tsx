@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import type { Task } from '@/types';
 
 interface CalendarPanelProps {
@@ -20,13 +20,14 @@ function toYMD(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** 月历面板：展示当月、高亮今天、可点选日期；有单日计划任务的日期打点 */
+/** 日历 v2.7：紧凑单栏（今天起最近 7 天）+「完整日历」按钮弹出月历 */
 export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: CalendarPanelProps) {
   const { t, i18n } = useTranslation();
   const today = useMemo(() => {
     const d = new Date();
     return toYMD(d);
   }, []);
+  const [showFull, setShowFull] = useState(false);
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };
@@ -44,6 +45,25 @@ export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: 
     return set;
   }, [tasks]);
 
+  // 紧凑单栏：今天起最近 7 天
+  const stripDays = useMemo(() => {
+    const out: Array<{ date: string; weekday: string; day: number; isToday: boolean; hasTasks: boolean }> = [];
+    const d = new Date();
+    for (let i = 0; i < 7; i++) {
+      const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
+      const date = toYMD(dt);
+      out.push({
+        date,
+        weekday: weekHeaders[(dt.getDay() + 6) % 7],
+        day: dt.getDate(),
+        isToday: date === today,
+        hasTasks: taskDates.has(date),
+      });
+    }
+    return out;
+  }, [today, taskDates, weekHeaders]);
+
+  // 完整月历 42 格
   const cells = useMemo(() => {
     const first = new Date(viewDate.y, viewDate.m, 1);
     // 周一为一周开始（JS getDay: 0=周日）
@@ -91,51 +111,95 @@ export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: 
     setViewDate({ y: d.getFullYear(), m: d.getMonth() });
     onSelectDate(today);
   };
+  const pickDate = (date: string) => {
+    setShowFull(false);
+    onSelectDate(date);
+  };
 
   return (
     <div className={`calendar-panel ${className ?? ''}`}>
-      <div className="calendar-header">
-        <button className="calendar-nav-btn" onClick={goPrev} title={t('time.calendar.prevMonth') || 'Prev'}>
-          <ChevronLeft size={13} />
-        </button>
-        <div className="calendar-title">
-          <span>{viewDate.y} · {viewDate.m + 1}</span>
-          <button className="calendar-today-btn" onClick={goToday} title={t('time.calendar.today') || 'Today'}>
-            {t('time.calendar.today') || '今天'}
-          </button>
-        </div>
-        <button className="calendar-nav-btn" onClick={goNext} title={t('time.calendar.nextMonth') || 'Next'}>
-          <ChevronRight size={13} />
-        </button>
-      </div>
-
-      <div className="calendar-weekdays">
-        {weekHeaders.map((w) => (
-          <div key={w} className="calendar-weekday">{w}</div>
-        ))}
-      </div>
-
-      <div className="calendar-grid">
-        {cells.map((cell) => {
-          const selected = cell.date === selectedDate;
+      {/* 紧凑单栏：最近 7 天 + 完整日历按钮 */}
+      <div className="calendar-strip">
+        {stripDays.map((d) => {
+          const selected = d.date === selectedDate;
           return (
             <button
-              key={cell.date}
+              key={d.date}
               className={[
-                'calendar-cell',
-                !cell.inMonth ? 'dim' : '',
-                cell.isToday ? 'is-today' : '',
+                'calendar-strip-cell',
+                d.isToday ? 'is-today' : '',
                 selected ? 'is-selected' : '',
               ].join(' ')}
-              onClick={() => onSelectDate(cell.date)}
-              title={cell.date}
+              onClick={() => pickDate(d.date)}
+              title={d.date}
             >
-              <span className="calendar-cell-day">{cell.day}</span>
-              {cell.hasTasks && <span className="calendar-cell-dot" />}
+              <span className="calendar-strip-weekday">{d.weekday}</span>
+              <span className="calendar-strip-day">{d.day}</span>
+              {d.hasTasks && <span className="calendar-strip-dot" />}
             </button>
           );
         })}
+        <button
+          className="calendar-strip-more"
+          onClick={() => setShowFull(true)}
+          title={t('time.calendar.openFull') || '完整日历'}
+        >
+          <CalendarDays size={15} />
+        </button>
       </div>
+
+      {/* 完整月历弹窗 */}
+      {showFull && (
+        <div className="calendar-dialog-backdrop" onClick={() => setShowFull(false)}>
+          <div className="calendar-dialog" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="calendar-dialog-head">
+              <button className="calendar-nav-btn" onClick={goPrev} title={t('time.calendar.prevMonth') || 'Prev'}>
+                <ChevronLeft size={13} />
+              </button>
+              <div className="calendar-dialog-title">
+                <span>{viewDate.y} · {viewDate.m + 1}</span>
+              </div>
+              <button className="calendar-today-btn" onClick={goToday} title={t('time.calendar.today') || '今天'}>
+                {t('time.calendar.today') || '今天'}
+              </button>
+              <button className="calendar-nav-btn" onClick={goNext} title={t('time.calendar.nextMonth') || 'Next'}>
+                <ChevronRight size={13} />
+              </button>
+              <button className="calendar-dialog-close" onClick={() => setShowFull(false)} title={t('common.close') || 'Close'}>
+                <X size={13} />
+              </button>
+            </div>
+
+            <div className="calendar-weekdays">
+              {weekHeaders.map((w) => (
+                <div key={w} className="calendar-weekday">{w}</div>
+              ))}
+            </div>
+
+            <div className="calendar-grid">
+              {cells.map((cell) => {
+                const selected = cell.date === selectedDate;
+                return (
+                  <button
+                    key={cell.date}
+                    className={[
+                      'calendar-cell',
+                      !cell.inMonth ? 'dim' : '',
+                      cell.isToday ? 'is-today' : '',
+                      selected ? 'is-selected' : '',
+                    ].join(' ')}
+                    onClick={() => pickDate(cell.date)}
+                    title={cell.date}
+                  >
+                    <span className="calendar-cell-day">{cell.day}</span>
+                    {cell.hasTasks && <span className="calendar-cell-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
