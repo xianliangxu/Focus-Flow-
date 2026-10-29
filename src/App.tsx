@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { FloatWindow } from '@/components/FloatWindow';
-import { PomodoroTimer } from '@/components/PomodoroTimer';
+import { PomodoroClock } from '@/components/PomodoroClock';
 import { ZoneManager } from '@/components/ZoneManager';
 import { TaskList } from '@/components/TaskList';
 import { GlobalView } from '@/components/GlobalView';
@@ -8,7 +8,8 @@ import { ExecutionPlanView } from '@/components/ExecutionPlanView';
 import { HistoryManager } from '@/components/HistoryManager';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { CollapseButton } from '@/components/CollapseButton';
-import { WeeklyPlanBar } from '@/components/WeeklyPlanBar';
+import { CalendarPanel } from '@/components/CalendarPanel';
+import { ClickParticles } from '@/components/ClickParticles';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useAppStore } from '@/store';
 import { useTimer } from '@/hooks/useTimer';
@@ -175,7 +176,6 @@ function App() {
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [executionPlanDate, setExecutionPlanDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [timerExpanded, setTimerExpanded] = useState(false);
   const collapsedPositionRef = useRef<{x: number, y: number} | null>(null);
 
   // 使用ref存储activeTaskId和tasks，确保计时器回调中能获取最新值
@@ -206,17 +206,6 @@ function App() {
         sessionWorkTimeRef.current = 0;
       }
     }, []);
-
-  // 处理计时器滴答，累计任务时间
-  // const handleTimerTick = useCallback(() => {
-  //   const currentActiveTaskId = activeTaskIdRef.current;
-  //   const currentTimer = timerRef.current;
-
-  //   if (currentActiveTaskId && currentTimer.isRunning && currentTimer.mode === 'work') {
-  //     // 使用 addWorkTime 累加时间：当前任务增加 ownTime
-  //     addWorkTimeRef.current(currentActiveTaskId, 1);
-  //   }
-  // }, []);
 
   const handleTimerTick = useCallback(() => {
     const currentTimer = timerRef.current;
@@ -580,13 +569,11 @@ function App() {
     return () => clearInterval(intervalId);
   }, [settings.autoSaveEnabled, settings.autoSaveInterval, hasUnsavedChanges, autoSaveSnapshot, t]);
 
-  // --- 在此处插入以下代码 ---
   // 💾 自动全量容灾备份逻辑 (每 10 分钟执行一次)
   useEffect(() => {
     const BACKUP_INTERVAL = 10 * 60 * 1000;
     const backupTimer = setInterval(async () => {
       try {
-        // const { writeTextFile } = await import('@tauri-apps/plugin-fs');
         const { dirname, join } = await import('@tauri-apps/api/path');
         const { getDbPath } = await import('@/lib/db'); 
         
@@ -689,8 +676,8 @@ function App() {
   const activeZone = getZoneById(activeZoneId || '') || null;
   const currentZoneTasks = activeZone ? getTasksByZone(activeZone.id) : [];
 
-  const timerElement = (
-    <PomodoroTimer
+  const clockElement = (
+    <PomodoroClock
       mode={timer.mode}
       formattedTime={timer.formattedTime}
       timeRemaining={timer.timeRemaining}
@@ -718,51 +705,20 @@ function App() {
       onSetMode={(newMode) => {
         timer.setMode(newMode);
       }}
-      collapsed={!timerExpanded}
-      onCollapsedChange={(collapsed) => setTimerExpanded(!collapsed)}
     />
   );
 
   return (
     <>
+      <ClickParticles />
       <FloatWindow onCollapse={handleToggleCollapse}>
         <div className="app-container">
-          {/* Top header: expanded timer hides calendar */}
-          {currentView !== 'executionPlan' ? (
-            timerExpanded ? (
-              <div className="top-header-row">
-                <div className="top-header-full">
-                  {timerElement}
-                </div>
-              </div>
-            ) : (
-              <div className="top-header-row">
-                <div className="top-header-left">
-                  <WeeklyPlanBar
-                    className="h-full"
-                    tasks={tasks}
-                    selectedDate={executionPlanDate}
-                    onDayClick={(date) => {
-                      setExecutionPlanDate(date);
-                      setCurrentView('executionPlan');
-                    }}
-                  />
-                </div>
-                <div className="top-header-right">
-                  {timerElement}
-                </div>
-              </div>
-            )
-          ) : (
-            <WeeklyPlanBar
-              tasks={tasks}
-              selectedDate={executionPlanDate}
-              onDayClick={(date) => {
-                setExecutionPlanDate(date);
-                setCurrentView('executionPlan');
-              }}
-            />
-          )}
+          {/* Top header: 整行留给圆形指针钟番茄钟 */}
+          <div className="top-header-row">
+            <div className="top-header-full">
+              {clockElement}
+            </div>
+          </div>
 
           {/* Divider */}
           <div className="section-divider" />
@@ -806,38 +762,55 @@ function App() {
             </div>
           ) : (
             <ResizablePanelGroup direction="horizontal" className="main-content">
-              <ResizablePanel defaultSize="40%" minSize="5%" maxSize="95%">
-                <ZoneManager
-                  zones={zones}
-                  tasks={tasks}
-                  activeZoneId={activeZoneId}
-                  templates={PREDEFINED_TEMPLATES}
-                  customTemplates={customTemplates}
-                  onNlpApply={useAppStore.getState().applyNlpActions}
-                  onSelectZone={(zoneId) => {
-                    setActiveZoneId(zoneId);
-                    setCurrentView(zoneId === null ? 'global' : 'zones');
-                  }}
-                  onAddZone={addZone}
-                  onUpdateZone={useAppStore.getState().updateZone}
-                  onDeleteZone={useAppStore.getState().deleteZone}
-                  onReorderZones={useAppStore.getState().reorderZones}
-                  onApplyTemplate={(templateId) => {
-                    // 应用模板前先自动保存当前工作区
-                    if (currentWorkspace.tasks.length > 0) {
-                      archiveCurrentWorkspace();
-                    }
-                    useAppStore.getState().applyTemplate(templateId);
-                  }}
-                  onViewChange={(view) => {
-                    setCurrentView(view);
-                    if (view === 'global') setActiveZoneId(null);
-                  }}
-                  onOpenHistory={() => setCurrentView('history')}
-                  onOpenSettings={() => setCurrentView('settings')}
-                  onSaveAsTemplate={saveCustomTemplate}
-                  onDeleteCustomTemplate={deleteCustomTemplate}
-                />
+              <ResizablePanel defaultSize="44%" minSize="5%" maxSize="95%">
+                <div className="left-panel">
+                  {/* 上半：月历（选日看任务） */}
+                  <div className="left-panel-calendar">
+                    <CalendarPanel
+                      tasks={tasks}
+                      selectedDate={executionPlanDate}
+                      onSelectDate={(date) => {
+                        setExecutionPlanDate(date);
+                        setCurrentView('executionPlan');
+                      }}
+                    />
+                  </div>
+                  <div className="left-panel-divider" />
+                  {/* 下半：工作分区 */}
+                  <div className="left-panel-zones">
+                    <ZoneManager
+                      zones={zones}
+                      tasks={tasks}
+                      activeZoneId={activeZoneId}
+                      templates={PREDEFINED_TEMPLATES}
+                      customTemplates={customTemplates}
+                      onNlpApply={useAppStore.getState().applyNlpActions}
+                      onSelectZone={(zoneId) => {
+                        setActiveZoneId(zoneId);
+                        setCurrentView(zoneId === null ? 'global' : 'zones');
+                      }}
+                      onAddZone={addZone}
+                      onUpdateZone={useAppStore.getState().updateZone}
+                      onDeleteZone={useAppStore.getState().deleteZone}
+                      onReorderZones={useAppStore.getState().reorderZones}
+                      onApplyTemplate={(templateId) => {
+                        // 应用模板前先自动保存当前工作区
+                        if (currentWorkspace.tasks.length > 0) {
+                          archiveCurrentWorkspace();
+                        }
+                        useAppStore.getState().applyTemplate(templateId);
+                      }}
+                      onViewChange={(view) => {
+                        setCurrentView(view);
+                        if (view === 'global') setActiveZoneId(null);
+                      }}
+                      onOpenHistory={() => setCurrentView('history')}
+                      onOpenSettings={() => setCurrentView('settings')}
+                      onSaveAsTemplate={saveCustomTemplate}
+                      onDeleteCustomTemplate={deleteCustomTemplate}
+                    />
+                  </div>
+                </div>
               </ResizablePanel>
 
               <ResizableHandle className="resize-handle" withHandle />
