@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Pin, Minus, X, GripHorizontal, ChevronDown } from 'lucide-react';
+import { Pin, Minus, X, GripHorizontal, ChevronDown, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store';
 
 interface FloatWindowProps {
   children: React.ReactNode;
   onCollapse?: () => void;
+  onOpenSettings?: () => void;
 }
 
 // Tauri API wrapper for browser compatibility
@@ -68,7 +69,7 @@ const tauriWindow = {
   },
 };
 
-export function FloatWindow({ children, onCollapse }: FloatWindowProps) {
+export function FloatWindow({ children, onCollapse, onOpenSettings }: FloatWindowProps) {
   const { t } = useTranslation();
   const [isPinned, setIsPinned] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,6 +129,15 @@ export function FloatWindow({ children, onCollapse }: FloatWindowProps) {
           <span className="title-text">{t('app.name')}</span>
         </div>
         <div className="window-controls no-drag" data-tauri-drag-region="false">
+          {onOpenSettings && (
+            <button
+              className="control-btn settings"
+              onClick={onOpenSettings}
+              title={t('settings.title')}
+            >
+              <Settings size={14} />
+            </button>
+          )}
           <button
             className={`control-btn ${isPinned ? 'active' : ''}`}
             onClick={togglePin}

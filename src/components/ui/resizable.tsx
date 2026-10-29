@@ -12,7 +12,7 @@ function ResizablePanelGroup({
 }) {
   return (
     <ResizablePrimitive.Group
-      data-panel-group-direction={direction}
+      orientation={direction}
       className={`flex h-full w-full ${direction === "vertical" ? "flex-col" : ""} ${className || ""}`}
       {...props}
     >
