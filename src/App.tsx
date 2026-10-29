@@ -24,6 +24,7 @@ import { startDataMonitor, stopDataMonitor } from '@/lib/db-monitor';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 import './App.v26.css';
+import './App.v27.css';
 
 function App() {
   const {
@@ -765,8 +766,8 @@ function App() {
             <ResizablePanelGroup direction="horizontal" className="main-content">
               <ResizablePanel defaultSize="44%" minSize="5%" maxSize="95%">
                 <ResizablePanelGroup direction="vertical" className="left-panel">
-                  {/* 上：月历（默认小，可拖大） */}
-                  <ResizablePanel defaultSize="35%" minSize="15%" maxSize="60%">
+                  {/* 上：日历紧凑单栏（默认小，可拖大） */}
+                  <ResizablePanel defaultSize="15%" minSize="10%" maxSize="35%">
                     <div className="left-panel-calendar">
                       <CalendarPanel
                         tasks={tasks}
@@ -779,8 +780,8 @@ function App() {
                     </div>
                   </ResizablePanel>
                   <ResizableHandle className="resize-handle-v" withHandle />
-                  {/* 下：工作分区（默认大，可拖小） */}
-                  <ResizablePanel defaultSize="65%" minSize="40%" maxSize="85%">
+                  {/* 下：工作分区（默认占大部分，可拖小） */}
+                  <ResizablePanel defaultSize="85%" minSize="60%" maxSize="90%">
                     <div className="left-panel-zones">
                     <ZoneManager
                       zones={zones}
