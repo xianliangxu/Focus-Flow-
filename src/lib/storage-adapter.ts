@@ -369,8 +369,12 @@ export const sqliteStorage: StateStorage = {
     if (_writeDebounceTimeout) clearTimeout(_writeDebounceTimeout);
 
     _writeDebounceTimeout = setTimeout(async () => {
-      // 1. 先写 localStorage (轻量)
-      localStorage.setItem(name, value);
+      // 1. 先写 localStorage（轻量备份）；非浏览器 / 测试环境没有 localStorage 时静默跳过，不影响 SQLite 持久化
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(name, value);
+      } catch {
+        // ignore: 受限环境下 localStorage 不可用属于预期
+      }
 
       // 2. 再写 SQLite (重量)
       try {

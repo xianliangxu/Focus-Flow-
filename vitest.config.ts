@@ -10,6 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    setupFiles: ['./src/test/setup-local-storage.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
   },
 });
