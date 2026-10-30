@@ -51,7 +51,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "deb", "rpm", "appimage", "app", "dmg"],
     "windows": {
       "nsis": {
         "languages": ["SimpChinese", "English"]
