@@ -1,0 +1,413 @@
+/* ============================================================
+   v2.8 顶部番茄钟重排（参考布局：指针钟 | 数字钟面板 | 三模式竖排 | 开始专注）
+   1) 三大部分间距拉开、整体模块拉高
+   2) 浅色外壳背景 100% 不透明；内部模块保留毛玻璃通透层次
+   3) 深色外壳浅蓝 → 深蓝渐变光影；深浅色统一配色优化
+   说明：本文件为最高优先级覆盖层（App.tsx 最后引入），
+        所有选择器只覆盖番茄钟区域与窗口外壳主题变量。
+   ============================================================ */
+
+/* ---- 顶部行容器拉高，给番茄钟留出舒展高度 ---- */
+.top-header-row {
+  min-height: 104px;
+  align-items: stretch;
+}
+
+/* 番茄钟外壳卡片：毛玻璃通透 + 柔和描边 / 内高光 */
+.top-header-full {
+  border-radius: 18px;
+  background: var(--v28-shell-bg);
+  -webkit-backdrop-filter: var(--v28-shell-blur);
+  backdrop-filter: var(--v28-shell-blur);
+  border: 1px solid var(--v28-shell-border);
+  box-shadow: var(--v28-shell-shadow);
+}
+
+/* ============================================================
+   主布局：指针钟 — 数字钟面板 — 右侧组（竖排三模式 + 开始专注）
+   ============================================================ */
+.pomodoro-clock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  height: auto;
+  min-height: 96px;
+  padding: 12px 18px;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* 1) 左侧圆形指针钟 */
+.clock-stage {
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+
+/* 2) 中间数字钟：宽大圆角毛玻璃面板 */
+.clock-digital {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 22px;
+  border-radius: 16px;
+  background: var(--v28-digital-bg);
+  border: 1px solid var(--v28-digital-border);
+  -webkit-backdrop-filter: var(--v28-digital-blur);
+  backdrop-filter: var(--v28-digital-blur);
+  box-shadow: var(--v28-digital-shadow);
+}
+
+/* 数字钟内不重复显示模式标签（模式由右侧竖排按钮指示） */
+.clock-digital .clock-mode-tag {
+  display: none !important;
+}
+
+.clock-digital-time {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  text-shadow: var(--v28-time-glow);
+}
+
+.clock-digital .clock-sessions {
+  gap: 7px;
+  height: 9px;
+}
+
+.clock-session-dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* 3)+4) 右侧组：竖排三模式按钮 + 主操作按钮 */
+.clock-side {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.clock-side .clock-modes {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  width: 86px;
+}
+
+.clock-side .clock-mode-btn {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 11px;
+  font-size: 11px;
+  white-space: nowrap;
+  border: 1px solid var(--v28-mode-border);
+  background: var(--v28-mode-bg);
+  color: var(--v28-mode-text);
+  -webkit-backdrop-filter: blur(10px) saturate(135%);
+  backdrop-filter: blur(10px) saturate(135%);
+  transition: all 0.18s ease;
+}
+
+.clock-side .clock-mode-btn:hover {
+  border-color: var(--v28-mode-hover-border);
+  color: var(--v28-mode-hover-text);
+}
+
+/* 三个模式按钮 active 专属色（1 专注蓝 / 2 短休绿 / 3 长休紫） */
+.clock-modes .clock-mode-btn:nth-child(1).active {
+  --v28-mode-active-text: var(--v28-active-blue-text);
+  --v28-mode-active-border: var(--v28-active-blue-border);
+  --v28-mode-active-bg: var(--v28-active-blue-bg);
+  --v28-mode-active-shadow: var(--v28-active-blue-shadow);
+}
+.clock-modes .clock-mode-btn:nth-child(2).active {
+  --v28-mode-active-text: var(--v28-active-green-text);
+  --v28-mode-active-border: var(--v28-active-green-border);
+  --v28-mode-active-bg: var(--v28-active-green-bg);
+  --v28-mode-active-shadow: var(--v28-active-green-shadow);
+}
+.clock-modes .clock-mode-btn:nth-child(3).active {
+  --v28-mode-active-text: var(--v28-active-purple-text);
+  --v28-mode-active-border: var(--v28-active-purple-border);
+  --v28-mode-active-bg: var(--v28-active-purple-bg);
+  --v28-mode-active-shadow: var(--v28-active-purple-shadow);
+}
+
+.clock-modes .clock-mode-btn.active {
+  color: var(--v28-mode-active-text);
+  border-color: var(--v28-mode-active-border);
+  background: var(--v28-mode-active-bg);
+  box-shadow: var(--v28-mode-active-shadow);
+}
+
+/* 主操作按钮（开始专注 / 运行控制） */
+.clock-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 104px;
+}
+
+.clock-start-btn {
+  flex: 1;
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+  background: var(--v28-start-bg);
+  color: #fff;
+  box-shadow: var(--v28-start-shadow);
+  transition: transform 0.15s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.clock-start-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--v28-start-shadow-hover);
+}
+
+.clock-start-btn:active {
+  transform: translateY(0);
+}
+
+.clock-start-icon {
+  margin: 0;
+}
+
+.clock-start-label {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* 运行中：暂停/继续 + 停止 + 跳过 一行（加宽主控制列，避免拥挤） */
+.clock-main-running {
+  width: 158px;
+}
+
+.clock-running-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 94px;
+}
+
+.clock-running-row .clock-side-btn {
+  flex: 1.5;
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: 1px solid var(--v28-mode-border);
+  background: var(--v28-mode-bg);
+  color: var(--v28-mode-text);
+  -webkit-backdrop-filter: blur(10px) saturate(135%);
+  backdrop-filter: blur(10px) saturate(135%);
+}
+
+.clock-running-row .control-btn {
+  flex: 0.85;
+  width: 100%;
+  min-height: 42px;
+  border-radius: 12px;
+  background: var(--v28-mode-bg);
+  border: 1px solid var(--v28-mode-border);
+  color: var(--v28-mode-text);
+}
+
+/* ============================================================
+   浅色主题（html:not(.dark)）
+   - 窗口外壳背景透明度 100%（实色不透明）
+   - 内部卡片 / 按钮毛玻璃通透
+   ============================================================ */
+:root {
+  --v28-shell-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(235, 244, 252, 0.78));
+  --v28-shell-blur: blur(16px) saturate(140%);
+  --v28-shell-border: rgba(74, 144, 202, 0.20);
+  --v28-shell-shadow:
+    0 8px 24px rgba(30, 90, 150, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  --v28-digital-bg: rgba(255, 255, 255, 0.66);
+  --v28-digital-border: rgba(74, 144, 202, 0.18);
+  --v28-digital-blur: blur(12px) saturate(145%);
+  --v28-digital-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --v28-time-glow: 0 1px 6px rgba(14, 80, 130, 0.18);
+
+  --v28-mode-bg: rgba(255, 255, 255, 0.58);
+  --v28-mode-border: rgba(74, 144, 202, 0.20);
+  --v28-mode-text: rgba(18, 52, 76, 0.82);
+  --v28-mode-hover-border: rgba(14, 140, 200, 0.45);
+  --v28-mode-hover-text: #0369a1;
+
+  --v28-start-bg: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  --v28-start-shadow:
+    0 6px 18px rgba(37, 99, 235, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --v28-start-shadow-hover:
+    0 10px 24px rgba(37, 99, 235, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+
+  --v28-active-blue-text: #0369a1;
+  --v28-active-blue-border: rgba(14, 165, 233, 0.55);
+  --v28-active-blue-bg: rgba(14, 165, 233, 0.13);
+  --v28-active-blue-shadow: 0 2px 10px rgba(14, 165, 233, 0.18);
+
+  --v28-active-green-text: #047857;
+  --v28-active-green-border: rgba(16, 185, 129, 0.55);
+  --v28-active-green-bg: rgba(16, 185, 129, 0.13);
+  --v28-active-green-shadow: 0 2px 10px rgba(16, 185, 129, 0.18);
+
+  --v28-active-purple-text: #6d28d9;
+  --v28-active-purple-border: rgba(139, 92, 246, 0.55);
+  --v28-active-purple-bg: rgba(139, 92, 246, 0.13);
+  --v28-active-purple-shadow: 0 2px 10px rgba(139, 92, 246, 0.18);
+}
+
+/* 浅色：窗口外壳 100% 不透明（透明度 alpha = 1） */
+html:not(.dark) {
+  --fg-window-bg: rgba(236, 243, 250, 1);
+  --fg-titlebar-bg: rgba(255, 255, 255, 0.92);
+}
+
+/* ============================================================
+   深色主题（html.dark）
+   - 外壳浅蓝 → 深蓝渐变光影
+   - 玻璃面板半透深蓝 + 浅蓝辉光
+   ============================================================ */
+html.dark {
+  --v28-shell-bg: linear-gradient(165deg, rgba(30, 62, 110, 0.58), rgba(14, 34, 68, 0.44));
+  --v28-shell-blur: blur(18px) saturate(150%);
+  --v28-shell-border: rgba(147, 197, 253, 0.28);
+  --v28-shell-shadow:
+    0 12px 32px rgba(2, 8, 24, 0.45),
+    inset 0 1px 0 rgba(191, 219, 254, 0.16);
+
+  --v28-digital-bg: linear-gradient(160deg, rgba(36, 74, 134, 0.44), rgba(16, 40, 80, 0.38));
+  --v28-digital-border: rgba(147, 197, 253, 0.30);
+  --v28-digital-blur: blur(14px) saturate(150%);
+  --v28-digital-shadow:
+    inset 0 1px 0 rgba(191, 219, 254, 0.16),
+    0 4px 14px rgba(8, 20, 48, 0.35);
+  --v28-time-glow: 0 0 14px rgba(125, 199, 255, 0.35);
+
+  --v28-mode-bg: rgba(148, 185, 255, 0.08);
+  --v28-mode-border: rgba(147, 197, 253, 0.18);
+  --v28-mode-text: rgba(224, 242, 254, 0.86);
+  --v28-mode-hover-border: rgba(125, 199, 255, 0.42);
+  --v28-mode-hover-text: #e0f2fe;
+
+  --v28-start-bg: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  --v28-start-shadow:
+    0 8px 22px rgba(37, 99, 235, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --v28-start-shadow-hover:
+    0 12px 28px rgba(37, 99, 235, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+
+  --v28-active-blue-text: #bae6fd;
+  --v28-active-blue-border: rgba(56, 189, 248, 0.6);
+  --v28-active-blue-bg: rgba(56, 189, 248, 0.16);
+  --v28-active-blue-shadow: 0 2px 12px rgba(56, 189, 248, 0.25);
+
+  --v28-active-green-text: #a7f3d0;
+  --v28-active-green-border: rgba(52, 211, 153, 0.6);
+  --v28-active-green-bg: rgba(52, 211, 153, 0.14);
+  --v28-active-green-shadow: 0 2px 12px rgba(52, 211, 153, 0.22);
+
+  --v28-active-purple-text: #ddd6fe;
+  --v28-active-purple-border: rgba(167, 139, 250, 0.6);
+  --v28-active-purple-bg: rgba(167, 139, 250, 0.16);
+  --v28-active-purple-shadow: 0 2px 12px rgba(167, 139, 250, 0.22);
+}
+
+/* 深色窗口外壳：浅蓝 → 深蓝渐变光影（覆盖 v2.7 旧渐变） */
+html.dark .float-window {
+  background:
+    radial-gradient(circle at 10% 6%, rgba(147, 197, 253, 0.28), transparent 44%),
+    radial-gradient(circle at 92% 14%, rgba(56, 189, 248, 0.16), transparent 42%),
+    radial-gradient(circle at 50% 108%, rgba(30, 64, 175, 0.28), transparent 58%),
+    linear-gradient(162deg, #24498a 0%, #163364 36%, #0d2452 68%, #061228 100%);
+  border-color: rgba(147, 197, 253, 0.20);
+  box-shadow:
+    0 16px 48px rgba(1, 6, 20, 0.6),
+    inset 0 1px 0 rgba(191, 219, 254, 0.12);
+}
+
+/* 深色标题栏同步深蓝玻璃感 */
+html.dark .title-bar {
+  background: rgba(13, 32, 64, 0.42);
+  border-color: rgba(147, 197, 253, 0.12);
+}
+
+/* 表盘底座：浅色淡蓝玻璃圆底，深蓝中心微光 */
+html:not(.dark) .clock-stage {
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.78), rgba(214, 233, 249, 0.42));
+  box-shadow:
+    inset 0 1px 3px rgba(255, 255, 255, 0.7),
+    0 2px 10px rgba(30, 90, 150, 0.10);
+}
+
+html.dark .clock-stage {
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 32%, rgba(147, 197, 253, 0.14), rgba(10, 24, 52, 0.10));
+  box-shadow: inset 0 1px 2px rgba(191, 219, 254, 0.12);
+}
+
+/* 窄窗适配：压缩右侧组与数字钟内边距，避免溢出 */
+@media (max-width: 560px) {
+  .pomodoro-clock {
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .clock-stage {
+    width: 68px;
+    height: 68px;
+  }
+  .clock-digital {
+    padding: 4px 12px;
+  }
+  .clock-digital-time {
+    font-size: 24px;
+  }
+  .clock-side {
+    gap: 8px;
+  }
+  .clock-side .clock-modes {
+    width: 72px;
+  }
+  .clock-main {
+    width: 88px;
+  }
+}

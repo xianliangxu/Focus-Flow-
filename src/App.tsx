@@ -25,6 +25,7 @@ import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 import './App.v26.css';
 import './App.v27.css';
+import './App.v28.css';
 
 function App() {
   const {
