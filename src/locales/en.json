@@ -43,7 +43,7 @@
     "statusNone": "Not configured"
   },
   "app": {
-    "name": "Focus Flow"
+    "name": "番茄钟待办"
   },
   "common": {
     "save": "Save",

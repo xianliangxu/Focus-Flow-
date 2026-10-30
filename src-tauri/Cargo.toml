@@ -1,8 +1,8 @@
 [package]
 name = "floating-todo"
-version = "2.8.0"
-description = "A floating todo list app with pomodoro timer"
-authors = ["Floating Todo"]
+version = "2.9.0"
+description = "番茄钟待办：番茄工作法 + 浮动待办清单"
+authors = ["番茄钟待办"]
 license = "MIT"
 repository = ""
 edition = "2021"
