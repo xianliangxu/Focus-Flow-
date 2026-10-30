@@ -326,11 +326,11 @@ export function PomodoroClock({
           </button>
         </div>
 
-        <div className="clock-main">
+        <div className={mode === 'idle' ? 'clock-main' : 'clock-main clock-main-running'}>
           {mode === 'idle' ? (
-            <Button size="sm" className="clock-start-btn" onClick={onStart}>
-              <Play size={12} className="mr-1" />
-              {t('timer.startFocus')}
+            <Button className="clock-start-btn" onClick={onStart}>
+              <Play size={15} className="clock-start-icon" />
+              <span className="clock-start-label">{t('timer.startFocus')}</span>
             </Button>
           ) : (
             <div className="clock-running-row">
