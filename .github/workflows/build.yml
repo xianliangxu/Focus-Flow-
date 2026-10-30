@@ -80,7 +80,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v2.7.0' }}
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v2.8.0' }}
           releaseName: 'Focus Flow v__VERSION__'
           releaseBody: |
             Focus Flow

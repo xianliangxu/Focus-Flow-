@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import type { Task } from '@/types';
@@ -12,6 +13,7 @@ interface CalendarPanelProps {
 
 const WEEK_CN = ['一', '二', '三', '四', '五', '六', '日'];
 const WEEK_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MONTH_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function toYMD(d: Date): string {
   const y = d.getFullYear();
@@ -116,6 +118,29 @@ export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: 
     onSelectDate(date);
   };
 
+  // 打开整月弹窗前，定位到当前选中日期所在月份
+  const openFull = () => {
+    if (selectedDate) {
+      const [y, m] = selectedDate.split('-');
+      if (y && m) setViewDate({ y: Number(y), m: Number(m) - 1 });
+    }
+    setShowFull(true);
+  };
+
+  // Esc 键关闭整月弹窗
+  useEffect(() => {
+    if (!showFull) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowFull(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showFull]);
+
+  const monthLabel = isZh
+    ? `${viewDate.y}年${viewDate.m + 1}月`
+    : `${MONTH_EN[viewDate.m]} ${viewDate.y}`;
+
   return (
     <div className={`calendar-panel ${className ?? ''}`}>
       {/* 紧凑单栏：最近 7 天 + 完整日历按钮 */}
@@ -141,23 +166,24 @@ export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: 
         })}
         <button
           className="calendar-strip-more"
-          onClick={() => setShowFull(true)}
+          onClick={openFull}
           title={t('time.calendar.openFull') || '完整日历'}
         >
           <CalendarDays size={15} />
         </button>
       </div>
 
-      {/* 完整月历弹窗 */}
-      {showFull && (
-        <div className="calendar-dialog-backdrop" onClick={() => setShowFull(false)}>
+      {/* 完整月历弹窗：Portal 到 body，避免被 .calendar-panel 的 backdrop-filter/overflow 裁剪 */}
+      {showFull &&
+        createPortal(
+          <div className="calendar-dialog-backdrop" onClick={() => setShowFull(false)}>
           <div className="calendar-dialog" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <div className="calendar-dialog-head">
               <button className="calendar-nav-btn" onClick={goPrev} title={t('time.calendar.prevMonth') || 'Prev'}>
                 <ChevronLeft size={13} />
               </button>
               <div className="calendar-dialog-title">
-                <span>{viewDate.y} · {viewDate.m + 1}</span>
+                <span>{monthLabel}</span>
               </div>
               <button className="calendar-today-btn" onClick={goToday} title={t('time.calendar.today') || '今天'}>
                 {t('time.calendar.today') || '今天'}
@@ -198,8 +224,9 @@ export function CalendarPanel({ tasks, selectedDate, onSelectDate, className }: 
               })}
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

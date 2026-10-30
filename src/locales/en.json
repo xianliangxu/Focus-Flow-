@@ -423,6 +423,7 @@
     "m": "{{mins}}m",
     "calendar": {
       "today": "Today",
+      "openFull": "Full Calendar",
       "prevMonth": "Prev Month",
       "nextMonth": "Next Month"
     }

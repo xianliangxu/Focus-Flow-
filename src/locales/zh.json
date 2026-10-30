@@ -423,6 +423,7 @@
     "m": "{{mins}}m",
     "calendar": {
       "today": "今天",
+      "openFull": "完整日历",
       "prevMonth": "上月",
       "nextMonth": "下月"
     }

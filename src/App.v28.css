@@ -411,3 +411,162 @@ html.dark .clock-stage {
     width: 88px;
   }
 }
+
+/* ============================================================
+   v2.8 日历整月弹窗
+   入口：日历条右侧 CalendarDays 小图标（.calendar-strip-more）
+   完整六行月历 + 毛玻璃深浅配色 + Esc/遮罩关闭
+   ============================================================ */
+
+/* 右侧唤起小按钮：与 v28 玻璃按钮统一 */
+.calendar-strip-more {
+  width: 32px;
+  min-height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--v28-mode-border);
+  background: var(--v28-mode-bg);
+  color: var(--v28-mode-text);
+  -webkit-backdrop-filter: blur(10px) saturate(135%);
+  backdrop-filter: blur(10px) saturate(135%);
+}
+.calendar-strip-more:hover {
+  border-color: var(--v28-mode-hover-border);
+  color: var(--v28-mode-hover-text);
+}
+
+/* 弹窗遮罩 */
+.calendar-dialog-backdrop {
+  background: rgba(15, 32, 60, 0.42);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* 弹窗主体：放大、圆角、毛玻璃 */
+.calendar-dialog {
+  width: min(408px, 94vw);
+  max-height: 88vh;
+  padding: 14px 14px 16px;
+  border-radius: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--v28-cal-border);
+  background: var(--v28-cal-bg);
+  -webkit-backdrop-filter: var(--v28-cal-blur);
+  backdrop-filter: var(--v28-cal-blur);
+  box-shadow: var(--v28-cal-shadow);
+  color: var(--v28-cal-text);
+}
+
+/* 头部：月份标题 + 前后翻页 + 今天 + 关闭 */
+.calendar-dialog-head {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.calendar-dialog-title {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.calendar-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  border: 1px solid var(--v28-mode-border);
+  background: var(--v28-mode-bg);
+  color: var(--v28-mode-text);
+}
+.calendar-nav-btn:hover {
+  border-color: var(--v28-mode-hover-border);
+  color: var(--v28-mode-hover-text);
+}
+.calendar-today-btn {
+  font-size: 11px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--v28-active-blue-border);
+  background: var(--v28-active-blue-bg);
+  color: var(--v28-active-blue-text);
+}
+.calendar-dialog-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  border: 1px solid var(--v28-mode-border);
+  background: transparent;
+  color: var(--v28-mode-text);
+}
+.calendar-dialog-close:hover {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #f87171;
+}
+
+/* 星期表头 */
+.calendar-dialog .calendar-weekdays {
+  margin-top: 2px;
+  gap: 3px;
+}
+.calendar-weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v28-cal-muted);
+  padding: 2px 0 6px;
+}
+
+/* 六行完整月历（每行等高 34px） */
+.calendar-dialog .calendar-grid {
+  gap: 3px;
+  grid-template-rows: repeat(6, 34px);
+}
+.calendar-cell {
+  border-radius: 10px;
+  font-size: 13px;
+}
+.calendar-cell:hover {
+  background: var(--v28-cal-cell-hover);
+}
+.calendar-cell.dim {
+  opacity: 0.38;
+}
+.calendar-cell.is-today .calendar-cell-day {
+  color: var(--v28-active-blue-text);
+  font-weight: 700;
+}
+.calendar-cell.is-selected {
+  background: var(--v28-active-blue-bg);
+  box-shadow: var(--v28-active-blue-shadow);
+}
+.calendar-cell.is-selected .calendar-cell-day {
+  color: var(--v28-active-blue-text);
+  font-weight: 700;
+}
+.calendar-cell-dot {
+  background: var(--v28-active-green-text);
+}
+.calendar-cell.is-selected .calendar-cell-dot {
+  background: var(--v28-active-blue-text);
+}
+
+/* 日历弹窗主题变量：浅色玻璃 / 深蓝玻璃 */
+:root {
+  --v28-cal-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.92), rgba(231, 242, 252, 0.88));
+  --v28-cal-blur: blur(18px) saturate(140%);
+  --v28-cal-border: rgba(74, 144, 202, 0.24);
+  --v28-cal-shadow:
+    0 24px 60px rgba(20, 60, 110, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --v28-cal-text: rgba(18, 52, 76, 0.92);
+  --v28-cal-muted: rgba(51, 84, 110, 0.62);
+  --v28-cal-cell-hover: rgba(14, 140, 200, 0.12);
+}
+html.dark {
+  --v28-cal-bg: linear-gradient(165deg, rgba(28, 60, 110, 0.86), rgba(13, 32, 66, 0.92));
+  --v28-cal-blur: blur(20px) saturate(150%);
+  --v28-cal-border: rgba(147, 197, 253, 0.26);
+  --v28-cal-shadow:
+    0 28px 64px rgba(1, 6, 20, 0.55),
+    inset 0 1px 0 rgba(191, 219, 254, 0.14);
+  --v28-cal-text: rgba(224, 242, 254, 0.94);
+  --v28-cal-muted: rgba(148, 197, 255, 0.62);
+  --v28-cal-cell-hover: rgba(125, 199, 255, 0.14);
+}
